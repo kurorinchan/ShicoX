@@ -13,7 +13,10 @@
   },
   "main": "background.js",
   "dependencies": {
+    "chai": "^4.2.0",
     "core-js": "^3.6.4",
+    "mocha": "^7.1.1",
+    "sinon": "^9.0.1",
     "vue": "^2.6.11"
   },
   "devDependencies": {
