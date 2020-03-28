@@ -64,24 +64,43 @@ function pickRandomElement(array) {
   return array[Math.floor(Math.random() * array.length)];
 }
 
-function allStartingWithAsPlayer(prefix, paths) {
+function allStartingWithAsPlayer(prefix, paths, audioCreateFunction) {
   const players = []
   for (const filePath of paths) {
     if (path.basename(filePath).startsWith(prefix)) {
-      players.push(new Player(filePath))
+      players.push(new Player(filePath, audioCreateFunction))
     }
   }
   return players
 }
 
 class Player {
-  constructor(audioFilePath) {
+  constructor(audioFilePath, audioCreateFunction) {
     this.path = audioFilePath
-    this.audio = null
+
+    this.audio = audioCreateFunction(audioFilePath)
+    this.onplayendedCallback = null
+    this.audio.onended = this.onended
+  }
+
+  // Set a callback for when the playback ends.
+  // The callback is called with this.
+  set onplayended(callback) {
+    this.onplayendedCallback = callback
+  }
+
+  // Called when the audio elements finish playing.
+  onended(event) {
+    if (this.onplayendedCallback)
+      this.onplayendedCallback(this)
   }
 
   play() {
     this.audio.play()
+  }
+
+  stop() {
+    this.audio.pause()
   }
 
   setVolume(volume) {
@@ -93,10 +112,10 @@ class Player {
   }
 }
 
-function pathsToPlayers(paths) {
+function pathsToPlayers(paths, audioCreateFunction) {
   const players = []
   for (const p of paths) {
-    players.push(new Player(p))
+    players.push(new Player(p, audioCreateFunction))
   }
   return players
 }
@@ -117,7 +136,7 @@ const SINGLE_FILE_COUNT_DOWN_VOICE = 'single-file-count-down-voice'
 const END_VOICE = 'end'
 const EXIT_VOICE = 'exit'
 
-function exploreShicoDir(shicoDir) {
+function exploreShicoDir(shicoDir, audioCreateFunction) {
   const files = fs.readdirSync(shicoDir)
   let shicoFastPaths = null
   let shicoNormalPaths = null
@@ -143,8 +162,8 @@ function exploreShicoDir(shicoDir) {
 
   // TODO: Handle the case when one of them is not populated.
   const shicoMapping = {}
-  shicoMapping[SHICO_FAST_VOICE] = pathsToPlayers(shicoFastPaths)
-  shicoMapping[SHICO_VOICE] = pathsToPlayers(shicoNormalPaths)
+  shicoMapping[SHICO_FAST_VOICE] = pathsToPlayers(shicoFastPaths, audioCreateFunction)
+  shicoMapping[SHICO_VOICE] = pathsToPlayers(shicoNormalPaths, audioCreateFunction)
 
   // TODO: Make a constant for the string.
   const found = shicoFinishPaths.find(
@@ -153,16 +172,24 @@ function exploreShicoDir(shicoDir) {
     }
   )
   // TODO: handle not found.
-  shicoMapping[SINGLE_FILE_COUNT_DOWN_VOICE] = [new Player(found)]
+  shicoMapping[SINGLE_FILE_COUNT_DOWN_VOICE] =
+    [new Player(found, audioCreateFunction)]
 
-  shicoMapping[EXIT_VOICE] = allStartingWithAsPlayer('end', shicoFinishPaths)
-  shicoMapping[END_VOICE] = allStartingWithAsPlayer('za', shicoFinishPaths)
-  shicoMapping[ABRUPT_VOICE] = allStartingWithAsPlayer('zb', shicoFinishPaths)
+  shicoMapping[EXIT_VOICE] =
+    allStartingWithAsPlayer('end', shicoFinishPaths, audioCreateFunction)
+  shicoMapping[END_VOICE] =
+    allStartingWithAsPlayer('za', shicoFinishPaths, audioCreateFunction)
+  shicoMapping[ABRUPT_VOICE] =
+    allStartingWithAsPlayer('zb', shicoFinishPaths, audioCreateFunction)
 
-  shicoMapping[LAST_MINUTE_VOICE] = allStartingWithAsPlayer('sf', shicoStartPaths)
-  shicoMapping[GIVE_UP_VOICE] = allStartingWithAsPlayer('sg', shicoStartPaths)
-  shicoMapping[START_FAST_VOICE] = allStartingWithAsPlayer('sz', shicoStartPaths)
-  shicoMapping[COUNT_DOWN_VOICE] = allStartingWithAsPlayer('cdown', shicoStartPaths)
+  shicoMapping[LAST_MINUTE_VOICE] =
+    allStartingWithAsPlayer('sf', shicoStartPaths, audioCreateFunction)
+  shicoMapping[GIVE_UP_VOICE] =
+    allStartingWithAsPlayer('sg', shicoStartPaths, audioCreateFunction)
+  shicoMapping[START_FAST_VOICE] =
+    allStartingWithAsPlayer('sz', shicoStartPaths, audioCreateFunction)
+  shicoMapping[COUNT_DOWN_VOICE] =
+    allStartingWithAsPlayer('cdown', shicoStartPaths, audioCreateFunction)
 
   const shicoStartPlayers = []
   for (const filePath of shicoStartPaths) {
@@ -178,14 +205,14 @@ function exploreShicoDir(shicoDir) {
     if (isOneOfOthers)
       continue
 
-    shicoStartPlayers.push(new Player(filePath))
+    shicoStartPlayers.push(new Player(filePath, audioCreateFunction))
   }
   shicoMapping[START_VOICE] = shicoStartPlayers
 
   return shicoMapping
 }
 
-function exploreVoiceDir(voiceDir) {
+function exploreVoiceDir(voiceDir, audioCreateFunction) {
   const files = fs.readdirSync(voiceDir)
   let fastPaths = null
   let silencePaths = null
@@ -206,21 +233,30 @@ function exploreVoiceDir(voiceDir) {
   }
 
   const pharseMapping = {}
-  pharseMapping[FAST_VOICE] = pathsToPlayers(fastPaths)
-  pharseMapping[SILENCE_VOICE] = pathsToPlayers(silencePaths)
-  pharseMapping[PHRASE_VOICE] = pathsToPlayers(normalPaths)
+  pharseMapping[FAST_VOICE] = pathsToPlayers(fastPaths, audioCreateFunction)
+  pharseMapping[SILENCE_VOICE] = pathsToPlayers(silencePaths, audioCreateFunction)
+  pharseMapping[PHRASE_VOICE] = pathsToPlayers(normalPaths, audioCreateFunction)
   return pharseMapping
 }
 
+// This is the function that should be used in a browser to create an Audio
+// element. However, while unit testing, creating it may not be ideal. So
+// inject a different function to AudioAssetGroup's contructor instead if
+// it has to be modified.
+function createAudio(path) {
+  return new Audio(path)
+}
+
 class AudioAssetGroup {
-  constructor(shicoDir, voiceDir) {
+  constructor(shicoDir, voiceDir, audioCreateFunction = createAudio) {
     this.shicoDir = shicoDir
     this.voiceDir = voiceDir
     this.shicoVolume = INIT_VOLUME
     this.phraseVolume = INIT_VOLUME
+    this.audioCreateFunction = audioCreateFunction
 
-    const shicoMapping = exploreShicoDir(this.shicoDir)
-    const phraseMapping = exploreVoiceDir(this.voiceDir)
+    const shicoMapping = exploreShicoDir(this.shicoDir, this.audioCreateFunction)
+    const phraseMapping = exploreVoiceDir(this.voiceDir, this.audioCreateFunction)
     this.allPlayers = Object.assign(shicoMapping, phraseMapping)
   }
 
@@ -230,12 +266,18 @@ class AudioAssetGroup {
     return parseInt(assetNumber)
   }
 
+  // TODO: Update volume for all players under shiko.
   setShicoVolume(volume) {
     this.shicoVolume = clampVolume(volume)
   }
 
+  // TODO: Update volume for all players under voice.
   setPharseVolume(volume) {
     this.phraseVolume = clampVolume(volume)
+  }
+
+  start() {
+    return pickRandomElement(this.allPlayers[START_VOICE])
   }
 
   startFast() {
@@ -298,6 +340,13 @@ class AudioAssetGroup {
 class AssetFinder {
   constructor(assetDir) {
     this.dir = assetDir
+    this.audioAssetGroupCreateFunc = function (dir1, dir2) {
+      return new AudioAssetGroup(dir1, dir2)
+    }
+  }
+
+  injectAudioAssetGroupCreateFunc(ctor) {
+    this.audioAssetGroupCreateFunc = ctor
   }
 
   // TODO: Consider returning a promise here so that it doesn't need to be
@@ -316,7 +365,7 @@ class AssetFinder {
       const shicoDir = path.join(this.dir, filename)
       const voiceDir = path.join(this.dir, voicename)
 
-      assetGroups.push(new AudioAssetGroup(shicoDir, voiceDir))
+      assetGroups.push(this.audioAssetGroupCreateFunc(shicoDir, voiceDir))
     }
     return assetGroups
   }
@@ -324,5 +373,6 @@ class AssetFinder {
 
 module.exports = {
   AudioAssetGroup,
-  AssetFinder
+  AssetFinder,
+  Player
 }

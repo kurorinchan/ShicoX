@@ -1,11 +1,18 @@
-var assert = require('assert')
 var audioasset = require('../src/components/audioasset')
 const fs = require('fs')
 const sinon = require('sinon')
+const jsdom = require('jsdom')
 
 var chai = require('chai')
   , should = chai.should()
   , expect = chai.expect;
+
+
+function fakeAudioCreateFunction(path) {
+  return {
+
+  }
+}
 
 describe('AudioAsset', function () {
   before(function () {
@@ -44,22 +51,17 @@ describe('AudioAsset', function () {
 
   describe('AssetFinder', function () {
     it('find 2 asset groups', function () {
-      const stub = sinon.stub().callsFake();
-      Object.setPrototypeOf(audioasset.AudioAssetGroup, stub);
       const finder = new audioasset.AssetFinder('/root')
+      finder.injectAudioAssetGroupCreateFunc(function () { })
       const groups = finder.findAudioAssetGroups()
-      assert.equal(groups.length, 2)
-      const groupAssetNumbers = []
-      for (let group of groups) {
-        groupAssetNumbers.push(group.assetGroupNumber())
-      }
+      expect(groups.length).to.equal(2)
     })
   })
 
   describe('Assets', function () {
     this.beforeEach(function () {
       this.group = new audioasset.AudioAssetGroup(
-        '/root/shiko01', '/root/voice01')
+        '/root/shiko01', '/root/voice01', fakeAudioCreateFunction)
     })
 
     it('find fast shiko', function () {
@@ -74,7 +76,7 @@ describe('AudioAsset', function () {
       expect(voice.pathForTesting).to.equal('/root/voice01/nomal_s/v01.wav')
     })
 
-    it('get asset group number to be 1', function () {
+    it('expect asset group number to be 1', function () {
       const groupNumber = this.group.assetGroupNumber()
       expect(groupNumber).to.equal(1)
     })
