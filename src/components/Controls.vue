@@ -5,7 +5,12 @@
       v-on:new-duration="displayedRemainingTime = $event"
     />
     {{ remainingTime }}
-    <ActionButtons v-on:start="start" v-on:stop="stop" v-on:start-fast="startFast" />
+    <ActionButtons
+      v-on:start="start"
+      v-on:stop="stop"
+      v-on:start-fast="startFast"
+      v-on:last="last"
+    />
     <ShicoVoiceController
       v-bind:volume="shicoVolume"
       v-on:volume-up="shicoVolumeUp"
@@ -26,170 +31,106 @@
 </template>
 
 <script>
+/* eslint-disable no-unused-vars */
+
 import CountDownTimer from './CountDownTimer.vue'
-import ActionButtons from './ActionButtons.vue'
-import ShicoVoiceController from './ShicoVoiceController.vue'
-import IngoVoiceController from './IngoVoiceController.vue'
+import ActionButtons from "./ActionButtons.vue";
+import ShicoVoiceController from "./ShicoVoiceController.vue";
+import IngoVoiceController from "./IngoVoiceController.vue";
 
-const app = require('electron').remote.app
-const path = require('path')
+const asm = require("./AudioStateMachine");
+const af = require("./AssetFinder");
 
-var basepath = app.getAppPath()
-var audioResoucePath = basepath
-console.log(basepath)
+const app = require("electron").remote.app;
 
-console.log(process.env)
+var basepath = app.getAppPath();
+var audioResoucePath = basepath;
+console.log(basepath);
 
-if (process.env.NODE_ENV === 'development') {
-  audioResoucePath = process.env.VUE_APP_AUDIO_RESOURCE_PATH
+console.log(process.env);
+
+if (process.env.NODE_ENV === "development") {
+  audioResoucePath = process.env.VUE_APP_AUDIO_RESOURCE_PATH;
 }
-console.log(audioResoucePath)
+console.log(audioResoucePath);
 
-const MIN_TO_SECONDS = 60
+const MIN_TO_SECONDS = 60;
 
-class Player {
-  constructor (volume, loop) {
-    this.audio = null
-    this.volume = volume
-    this.loop = loop
-  }
-
-  set (file) {
-    this.file = file
-    if (this.audio) {
-      this.audio.pause()
-    }
-    this.audio = new Audio(file)
-    this.audio.loop = this.loop
-    this.audio.volume = this.volume / 100
-    this.audio.play()
-  }
-
-  changeVolume (diff) {
-    this.volume += diff
-    this.volume = Math.max(0, Math.min(100, this.volume))
-    if (this.audio) { this.audio.volume = this.volume / 100 }
-  }
-
-  play () {
-    if (this.audio) { this.audio.play() }
-  }
-
-  pause () {
-    if (this.audio) { this.audio.pause() }
-  }
-}
-
-const SHICO_KEY = 'shicoAudioTrack'
-const SHICO_INIT_VOLUME = 75
-const INIT_VOLUME = 100
+const SHICO_KEY = "shicoAudioTrack";
+const SHICO_INIT_VOLUME = 7;
+const INIT_VOLUME = 100;
 
 // TODO: Possibly move all the logic out from here and put it into a separate
 // class/object that hold the state. This shoul probably be a slim object.
 export default {
-  name: 'Controls',
+  name: "Controls",
   components: {
     ActionButtons,
     CountDownTimer,
     ShicoVoiceController,
     IngoVoiceController
   },
-  data () {
-    const appPath = 'file://' + audioResoucePath
-    const shicoPlayer = new Player(SHICO_INIT_VOLUME, true)
-
-    var players = {}
-    players[SHICO_KEY] = shicoPlayer
-
-    // Come up with a way to associate player name and the ingoVoice objects
-    // below.
-    for (let i = 1; i <= 2; i++) {
-      const player = new Player(INIT_VOLUME, false)
-      players['player' + i] = player
+  data() {
+    const appPath = "file://" + audioResoucePath;
+    const finder = new af.AssetFinder(audioResoucePath);
+    const groups = finder.findAudioAssetGroups();
+    const stateMachine = new asm.AudioStateMachine();
+    for (const group of groups) {
+      stateMachine.addPhraseGroup(group);
     }
 
     return {
+      stateMachine: stateMachine,
       remainingTime: 10 * MIN_TO_SECONDS,
-      players: players,
       appPath: appPath,
-      pan: 'left',
+      pan: "left",
       ingoVoices: [
         {
           volume: 100,
           checked: true,
-          pan: 'center',
+          pan: "center",
           trackNumber: 1,
-          playerName: 'player1'
+          playerName: "player1"
         },
         {
           volume: 100,
           checked: false,
-          pan: 'center',
+          pan: "center",
           trackNumber: 2,
-          playerName: 'player2'
+          playerName: "player2"
         }
       ]
-    }
+    };
   },
   computed: {
     displayedRemainingTime: {
-      get: function () {
-        return Math.floor(this.remainingTime / MIN_TO_SECONDS)
+      get: function() {
+        return Math.floor(this.remainingTime / MIN_TO_SECONDS);
       },
-      set: function (minutes) {
-        this.remainingTime = minutes * MIN_TO_SECONDS
+      set: function(minutes) {
+        this.remainingTime = minutes * MIN_TO_SECONDS;
       }
     },
-    shicoVolume: function () {
-      return this.players[SHICO_KEY].volume
+    shicoVolume: function() {
+      return 100;
     }
   },
   methods: {
-    start: function () {
-      const file = path.join(this.appPath, 'shiko01', 'nomal', '01.wav')
-      this.stop()
-      const player = this.players[SHICO_KEY]
-      player.set(file)
-      player.play()
-
-      for (const ingoVoice of this.ingoVoices) {
-        if (!ingoVoice.checked) {
-          continue
-        }
-        const player = this.players[ingoVoice.playerName]
-        const file = path.join(this.appPath, 'voice01', 'nomal_s', 'v01.wav')
-        player.set(file)
-        player.play()
-      }
+    start: function() {
+      this.stateMachine.play();
     },
-    stop: function () {
-      for (const [, player] of Object.entries(this.players)) {
-        player.pause()
-      }
+    stop: function() {
+      this.stateMachine.stop();
     },
-    startFast: function () {
-      const file = path.join(this.appPath, 'shiko01', 'fast', 'f92.wav')
-      this.stop()
-      const player = this.players[SHICO_KEY]
-      player.set(file)
-      player.play()
-    },
-    shicoVolumeUp: function () {
-      this.players[SHICO_KEY].changeVolume(5)
-    },
-    shicoVolumeDown: function () {
-      this.players[SHICO_KEY].changeVolume(-5)
-    },
-    ingoVolumeUp: function (entry) {
-      const playerName = 'player' + entry.trackNumber
-      const player = this.players[playerName]
-      player.changeVolume(5)
-    },
-    ingoVolumeDown: function (entry) {
-      const playerName = 'player' + entry.trackNumber
-      const player = this.players[playerName]
-      player.changeVolume(-5)
+    startFast: function() {},
+    shicoVolumeUp: function() {},
+    shicoVolumeDown: function() {},
+    ingoVolumeUp: function(entry) {},
+    ingoVolumeDown: function(entry) {},
+    last: function() {
+      // shasei button.
+      this.stateMachine.end();
     }
   }
-}
+};
 </script>

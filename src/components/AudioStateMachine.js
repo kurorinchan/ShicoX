@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 const INIT_STATE = Symbol('init')
 const FAST_STATE = Symbol('fast')
 const START_FAST_STATE = Symbol('startfast')
@@ -15,29 +16,21 @@ function stub() { }
 // This is an event type that isn't really associated with anything.
 // Use this event for passing "no info" to a state handler, e.g. transition
 // to a next state that doesn't require any info from the previous.
-const NULL_EVENT_TYPE = 0
-const PLAYBACK_COMPLETE_EVENT_TYPE = 1
-const MINUTE_COUNT_DOWN_EVENT_TYPE = 2
+const NULL_OPERATION_TYPE = 0
+const PLAYBACK_COMPLETE_TYPE = 1
+const MINUTE_COUNT_DOWN_OPERATION_TYPE = 2
 const USER_INTERRUPT = 3
 
-class Event {
-  constructor(type) {
-    this.type = type
-  }
-
-  get type() {
-    return this.type
+class Operation {
+  constructor(optype) {
+    this.optype = optype
   }
 }
 
-class PlaybackCompleteEvent extends Event {
+class PlaybackComplete extends Operation {
   constructor(player) {
-    super(PLAYBACK_COMPLETE_EVENT_TYPE)
+    super(PLAYBACK_COMPLETE_TYPE)
     this.player = player
-  }
-
-  get player() {
-    return this.player
   }
 }
 
@@ -85,11 +78,8 @@ class AudioStateMachine {
     // This should start the timer regardless of whether any audio groups have
     // been registered. They can be added/changed/removed later.
     this.state = START_STATE
-    for (const group of this.phraseGroups) {
-      this.currentPlayer = group.start()
-    }
-
-    this.currentPlayer.onended = this.completedPhrasePlayback
+    this.currentPlayer = this.phraseGroups[0].start()
+    this.currentPlayer.onplayended = this.completedPhrasePlayback.bind(this)
     this.currentPlayer.play()
 
     // No need to call processNext(). The event handlers will do it.
@@ -105,43 +95,39 @@ class AudioStateMachine {
 
   end() {
     // TODO: Check if it is in an allowed state.
-
     if (this.currentPlayer) {
-      this.currentPlayer.pause()
+      this.currentPlayer.stop()
     }
     this.state = END_STATE
 
-    for (const group of this.phraseGroups) {
-      this.currentPlayer = group.end()
-    }
-
-    this.currentPlayer = this.completedPhrasePlayback
+    this.currentPlayer = this.phraseGroups[0].end()
+    this.currentPlayer.onplayended = this.completedPhrasePlayback.bind(this)
     this.currentPlayer.play()
   }
 
   stop() {
+    this.currentPlayer.stop()
+    this.state = INIT_STATE
   }
 
   // Non-public functions.
 
   completedPhrasePlayback(player) {
-    this.processNext(new PlaybackCompleteEvent(player))
+    this.processNext(new PlaybackComplete(player))
   }
 
   startHandler(event) {
     this.currentPlayer = null
     this.state = FAST_STATE
-    processNext(new Event(NULL_EVENT_TYPE))
+    this.processNext(new Operation(NULL_OPERATION_TYPE))
   }
 
   fastHandler(event) {
     // Note that the event doesn't matter. Once in fast mode it stays in
     // fast until 
-    for (const group of this.phraseGroups) {
-      this.currentPlayer = group.fast()
-    }
+    this.currentPlayer = this.phraseGroups[0].fast()
 
-    this.currentPlayer = this.completedPhrasePlayback
+    this.currentPlayer.onplayended = this.completedPhrasePlayback.bind(this)
     this.currentPlayer.play()
   }
 

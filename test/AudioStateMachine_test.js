@@ -1,6 +1,5 @@
 var asm = require('../src/components/AudioStateMachine')
 const sinon = require('sinon')
-var audioasset = require('../src/components/audioasset')
 
 class Group {
   start() {
@@ -14,6 +13,26 @@ var chai = require('chai')
   , should = chai.should()
   , expect = chai.expect;
 
+class FakePlayer {
+  set onplayended(cb) {
+    this.setOnEnded(cb)
+  }
+
+  setOnEnded(cb) {
+    this.cb = cb
+  }
+
+  play() {
+    console.log('play')
+  }
+
+  prepare() { }
+
+  fireCallback() {
+    this.cb()
+  }
+}
+
 describe('AudioStatemachine', function () {
   it('add phrase groups', function () {
     const machine = new AudioStateMachine()
@@ -23,19 +42,21 @@ describe('AudioStatemachine', function () {
   it('start', function () {
     const machine = new AudioStateMachine()
     const fakeGroup = {
-      start: function () { }
+      start: function () { },
+      fast: function () { }
     }
-    const fakePlayer = {
-      onended: function () { },
-      play: function () { }
-    }
+    const fakePlayer = new FakePlayer()
     const phraseGroupMock = sinon.mock(fakeGroup)
-    const playerMock = sinon.mock(fakePlayer)
+    const onendedSpy = sinon.spy(fakePlayer, 'onplayended', ['set'])
+    const playSpy = sinon.spy(fakePlayer, 'play')
     phraseGroupMock.expects('start').once().returns(fakePlayer)
-    playerMock.expects('onended').once()
-    playerMock.expects('play').once()
+    phraseGroupMock.expects('fast').once().returns(fakePlayer)
 
     machine.addPhraseGroup(fakeGroup)
     machine.play(1)
+
+    expect(onendedSpy.set.calledOnce).to.be.true
+    expect(playSpy.calledOnce).to.be.true
+    fakePlayer.fireCallback()
   })
 })

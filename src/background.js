@@ -17,8 +17,8 @@ protocol.registerSchemesAsPrivileged([{ scheme: 'app', privileges: { secure: tru
 function createWindow () {
   // Create the browser window.
   win = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 1500,
+    height: 700,
     webPreferences: {
       // Disable websecurity to allow render to access files.
       // Since this app won't access any web data, this should be fine.

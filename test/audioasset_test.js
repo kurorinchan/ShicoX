@@ -1,4 +1,4 @@
-var audioasset = require('../src/components/audioasset')
+var audioasset = require('../src/components/AssetFinder')
 const fs = require('fs')
 const sinon = require('sinon')
 const jsdom = require('jsdom')
@@ -25,8 +25,8 @@ describe('AudioAsset', function () {
       '/root/shiko01/start': [
         'cdownxxx1.wav', 'cdown02.wav',
         's01.wav', 'sf01.wav', 'sg01.wav', 'sz01.wav'],
-      '/root/voice01': ['fast', 'muon', 'nomal_s'],
-      '/root/voice01/fast': ['vf01.wav'],
+      '/root/voice01': ['fast_s', 'muon', 'nomal_s'],
+      '/root/voice01/fast_s': ['vf01.wav'],
       '/root/voice01/muon': ['01.wav'],
       '/root/voice01/nomal_s': ['v01.wav'],
       '/root/shiko02': ['fast', 'finish', 'nomal', 'start'],
@@ -36,8 +36,8 @@ describe('AudioAsset', function () {
       '/root/shiko02/start': [
         'cdownxxx1.wav', 'cdown02.wav',
         's01.wav', 'sf01.wav', 'sg01.wav', 'sz01.wav'],
-      '/root/voice02': ['fast', 'muon', 'nomal_s'],
-      '/root/voice02/fast': ['vf01.wav'],
+      '/root/voice02': ['fast_s', 'muon', 'nomal_s'],
+      '/root/voice02/fast_s': ['vf01.wav'],
       '/root/voice02/muon': ['01.wav'],
       '/root/voice02/nomal_s': ['v01.wav']
     }
@@ -60,6 +60,7 @@ describe('AudioAsset', function () {
 
   describe('Assets', function () {
     this.beforeEach(function () {
+      // TODO: Consider using jsDOM and sinon to mock window.Audio.
       this.group = new audioasset.AudioAssetGroup(
         '/root/shiko01', '/root/voice01', fakeAudioCreateFunction)
     })

@@ -7,6 +7,7 @@ const VOICE = 'voice'
 
 // These are the directory names that it should be looking for.
 const FAST_DIR = 'fast'
+const FAST_PHRASE_DIR = 'fast_s'
 const FINISH_DIR = 'finish'
 const NORMAL_DIR = 'nomal'
 const START_DIR = 'start'
@@ -24,7 +25,7 @@ function clampVolume(volume) {
 
 function exploreDirForPrefixes(dir, relevantPrefixes) {
   const files = fs.readdirSync(dir)
-  relavantFiles = []
+  const relavantFiles = []
   for (const filename of files) {
     // If there are no relevant prefixes, then all of them are relevant.
     const relevant =
@@ -60,8 +61,10 @@ function exploreShicoStart(dir) {
   return exploreDirForPrefixes(dir, ['cdownxxx', 'cdown', 's', 'sf', 'sg', 'sz'])
 }
 
-function pickRandomElement(array) {
-  return array[Math.floor(Math.random() * array.length)];
+function pickRandomPlayer(array) {
+  const element = array[Math.floor(Math.random() * array.length)];
+  element.prepare()
+  return element
 }
 
 function allStartingWithAsPlayer(prefix, paths, audioCreateFunction) {
@@ -77,10 +80,14 @@ function allStartingWithAsPlayer(prefix, paths, audioCreateFunction) {
 class Player {
   constructor(audioFilePath, audioCreateFunction) {
     this.path = audioFilePath
-
-    this.audio = audioCreateFunction(audioFilePath)
     this.onplayendedCallback = null
-    this.audio.onended = this.onended
+    this.audio = null
+    this.audioCreateFunction = audioCreateFunction
+  }
+
+  prepare() {
+    this.audio = this.audioCreateFunction(this.path)
+    this.audio.onended = this.onended.bind(this)
   }
 
   // Set a callback for when the playback ends.
@@ -90,9 +97,12 @@ class Player {
   }
 
   // Called when the audio elements finish playing.
-  onended(event) {
-    if (this.onplayendedCallback)
+  onended() {
+    if (this.onplayendedCallback) {
       this.onplayendedCallback(this)
+      this.onplayendedCallback = null
+    }
+    this.audio = null
   }
 
   play() {
@@ -168,7 +178,7 @@ function exploreShicoDir(shicoDir, audioCreateFunction) {
   // TODO: Make a constant for the string.
   const found = shicoFinishPaths.find(
     function (element) {
-      path.basename(element) == 'count.wav'
+      return path.basename(element) == 'count.wav'
     }
   )
   // TODO: handle not found.
@@ -220,7 +230,7 @@ function exploreVoiceDir(voiceDir, audioCreateFunction) {
 
   for (const filename of files) {
     switch (filename) {
-      case FAST_DIR:
+      case FAST_PHRASE_DIR:
         fastPaths = exploreDirForPrefixes(path.join(voiceDir, filename), ['vf'])
         break
       case SILENCE_DIR:
@@ -244,10 +254,13 @@ function exploreVoiceDir(voiceDir, audioCreateFunction) {
 // inject a different function to AudioAssetGroup's contructor instead if
 // it has to be modified.
 function createAudio(path) {
-  return new Audio(path)
+  return new Audio('file://' + path)
 }
 
 class AudioAssetGroup {
+  // TODO: The create function might be replaced by sinon's injection.
+  // Also consider moving the file exploration logic out of the constructor
+  // which might help better test this.
   constructor(shicoDir, voiceDir, audioCreateFunction = createAudio) {
     this.shicoDir = shicoDir
     this.voiceDir = voiceDir
@@ -276,64 +289,67 @@ class AudioAssetGroup {
     this.phraseVolume = clampVolume(volume)
   }
 
+  // TODO: Players returned from these functions should be "prepared".
   start() {
-    return pickRandomElement(this.allPlayers[START_VOICE])
+    return pickRandomPlayer(this.allPlayers[START_VOICE])
   }
 
   startFast() {
-    return pickRandomElement(this.allPlayers[START_FAST_VOICE])
+    return pickRandomPlayer(this.allPlayers[START_FAST_VOICE])
   }
 
   shico() {
-    return pickRandomElement(this.allPlayers[SHICO_VOICE])
+    return pickRandomPlayer(this.allPlayers[SHICO_VOICE])
   }
 
   phrase() {
-    return pickRandomElement(this.allPlayers[PHRASE_VOICE])
+    return pickRandomPlayer(this.allPlayers[PHRASE_VOICE])
   }
 
   silence() {
-    return pickRandomElement(this.allPlayers[SILENCE_VOICE])
+    return pickRandomPlayer(this.allPlayers[SILENCE_VOICE])
   }
 
   perMinuteNofitication(minutesRemaining) {
     // TODO: use minutesRemaining to choose the right per minute.
     if (minutesRemaining > 5) {
-      return pickRandomElement(this.allPlayers[COUNT_DOWN_VOICE])
+      return pickRandomPlayer(this.allPlayers[COUNT_DOWN_VOICE])
     }
-    return pickRandomElement(this.allPlayers[COUNT_DOWN_VOICE])
+    return pickRandomPlayer(this.allPlayers[COUNT_DOWN_VOICE])
   }
 
   abrupt() {
-    return pickRandomElement(this.allPlayers[ABRUPT_VOICE])
+    return pickRandomPlayer(this.allPlayers[ABRUPT_VOICE])
   }
 
   giveup() {
-    return pickRandomElement(this.allPlayers[GIVE_UP_VOICE])
+    return pickRandomPlayer(this.allPlayers[GIVE_UP_VOICE])
   }
 
   lastMinute() {
-    return pickRandomElement(this.allPlayers(LAST_MINUTE_VOICE))
+    return pickRandomPlayer(this.allPlayers(LAST_MINUTE_VOICE))
   }
 
   fast() {
-    return pickRandomElement(this.allPlayers[FAST_VOICE])
+    return pickRandomPlayer(this.allPlayers[FAST_VOICE])
   }
 
   shicoFast() {
-    return pickRandomElement(this.allPlayers[SHICO_FAST_VOICE])
+    return pickRandomPlayer(this.allPlayers[SHICO_FAST_VOICE])
   }
 
   countDown() {
-    return this.allPlayers[SINGLE_FILE_COUNT_DOWN_VOICE][0]
+    const player = this.allPlayers[SINGLE_FILE_COUNT_DOWN_VOICE][0]
+    player.prepare()
+    return player
   }
 
   end() {
-    return pickRandomElement(this.allPlayers[END_VOICE])
+    return pickRandomPlayer(this.allPlayers[END_VOICE])
   }
 
   exit() {
-    return pickRandomElement(this.allPlayers[EXIT_VOICE])
+    return pickRandomPlayer(this.allPlayers[EXIT_VOICE])
   }
 }
 
