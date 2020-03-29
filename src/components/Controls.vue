@@ -9,6 +9,7 @@
       v-on:start="start"
       v-on:stop="stop"
       v-on:start-fast="startFast"
+      v-on:giveup="giveup"
       v-on:last="last"
     />
     <ShicoVoiceController
@@ -34,36 +35,36 @@
 /* eslint-disable no-unused-vars */
 
 import CountDownTimer from './CountDownTimer.vue'
-import ActionButtons from "./ActionButtons.vue";
-import ShicoVoiceController from "./ShicoVoiceController.vue";
-import IngoVoiceController from "./IngoVoiceController.vue";
+import ActionButtons from './ActionButtons.vue'
+import ShicoVoiceController from './ShicoVoiceController.vue'
+import IngoVoiceController from './IngoVoiceController.vue'
 
-const asm = require("./AudioStateMachine");
-const af = require("./AssetFinder");
+const asm = require('./AudioStateMachine')
+const af = require('./AssetFinder')
 
-const app = require("electron").remote.app;
+const app = require('electron').remote.app
 
-var basepath = app.getAppPath();
-var audioResoucePath = basepath;
-console.log(basepath);
+var basepath = app.getAppPath()
+var audioResoucePath = basepath
+console.log(basepath)
 
-console.log(process.env);
+console.log(process.env)
 
-if (process.env.NODE_ENV === "development") {
-  audioResoucePath = process.env.VUE_APP_AUDIO_RESOURCE_PATH;
+if (process.env.NODE_ENV === 'development') {
+  audioResoucePath = process.env.VUE_APP_AUDIO_RESOURCE_PATH
 }
-console.log(audioResoucePath);
+console.log(audioResoucePath)
 
-const MIN_TO_SECONDS = 60;
+const MIN_TO_SECONDS = 60
 
-const SHICO_KEY = "shicoAudioTrack";
-const SHICO_INIT_VOLUME = 7;
-const INIT_VOLUME = 100;
+const SHICO_KEY = 'shicoAudioTrack'
+const SHICO_INIT_VOLUME = 7
+const INIT_VOLUME = 100
 
 // TODO: Possibly move all the logic out from here and put it into a separate
 // class/object that hold the state. This shoul probably be a slim object.
 export default {
-  name: "Controls",
+  name: 'Controls',
   components: {
     ActionButtons,
     CountDownTimer,
@@ -71,66 +72,71 @@ export default {
     IngoVoiceController
   },
   data() {
-    const appPath = "file://" + audioResoucePath;
-    const finder = new af.AssetFinder(audioResoucePath);
-    const groups = finder.findAudioAssetGroups();
-    const stateMachine = new asm.AudioStateMachine();
+    const appPath = 'file://' + audioResoucePath
+    const finder = new af.AssetFinder(audioResoucePath)
+    const groups = finder.findAudioAssetGroups()
+    const stateMachine = new asm.AudioStateMachine()
     for (const group of groups) {
-      stateMachine.addPhraseGroup(group);
+      stateMachine.addPhraseGroup(group)
     }
 
     return {
       stateMachine: stateMachine,
       remainingTime: 10 * MIN_TO_SECONDS,
       appPath: appPath,
-      pan: "left",
+      pan: 'left',
       ingoVoices: [
         {
           volume: 100,
           checked: true,
-          pan: "center",
+          pan: 'center',
           trackNumber: 1,
-          playerName: "player1"
+          playerName: 'player1'
         },
         {
           volume: 100,
           checked: false,
-          pan: "center",
+          pan: 'center',
           trackNumber: 2,
-          playerName: "player2"
+          playerName: 'player2'
         }
       ]
-    };
+    }
   },
   computed: {
     displayedRemainingTime: {
       get: function() {
-        return Math.floor(this.remainingTime / MIN_TO_SECONDS);
+        return Math.floor(this.remainingTime / MIN_TO_SECONDS)
       },
       set: function(minutes) {
-        this.remainingTime = minutes * MIN_TO_SECONDS;
+        this.remainingTime = minutes * MIN_TO_SECONDS
       }
     },
     shicoVolume: function() {
-      return 100;
+      return 100
     }
   },
   methods: {
     start: function() {
-      this.stateMachine.play();
+      this.stateMachine.play(1)
     },
     stop: function() {
-      this.stateMachine.stop();
+      this.stateMachine.stop()
     },
-    startFast: function() {},
+    startFast: function() {
+      this.stateMachine.playFast()
+    },
     shicoVolumeUp: function() {},
     shicoVolumeDown: function() {},
     ingoVolumeUp: function(entry) {},
     ingoVolumeDown: function(entry) {},
+    giveup: function() {
+      this.stateMachine.giveup()
+    },
     last: function() {
       // shasei button.
-      this.stateMachine.end();
+      this.stateMachine.end()
     }
   }
-};
+}
 </script>
