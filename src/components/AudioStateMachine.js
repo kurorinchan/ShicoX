@@ -107,7 +107,6 @@ class AudioStateMachine {
     this.currentPlayer = this.phraseGroups[0].start()
     this.currentPlayer.onplayended = this.completedPhrasePlayback.bind(this)
     this.currentPlayer.play()
-    setTimeout(this.timerFired.bind(this), ONE_MINUTE)
 
     // No need to call processNext(). The event handlers will do it.
   }
@@ -181,6 +180,9 @@ class AudioStateMachine {
   startHandler(event) {
     this.currentPlayer = null
     this.state = NORMAL_STATE
+    if (this.duration > 0) {
+      setTimeout(this.timerFired.bind(this), ONE_MINUTE)
+    }
     this.processNext(new Operation(NULL_OPERATION_TYPE))
   }
 
@@ -200,7 +202,7 @@ class AudioStateMachine {
       this.currentPlayer.play()
     } else if (event.type == MINUTE_COUNT_DOWN_OPERATION_TYPE) {
       if (event.timeRemaining > 0) {
-        const notificationPlayer = this.phraseGroups[0].perMinuteNofitication(
+        const notificationPlayer = this.phraseGroups[0].perMinuteNotification(
           event.timeRemaining
         )
         notificationPlayer.play()
