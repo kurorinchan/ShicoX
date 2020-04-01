@@ -131,7 +131,7 @@ export default {
     ingoVolumeUp: function(entry) {},
     ingoVolumeDown: function(entry) {},
     giveup: function() {
-      this.stateMachine.giveup()
+      this.stateMachine.giveUp()
     },
     last: function() {
       // shasei button.

@@ -78,6 +78,13 @@ class AudioStateMachine {
   }
 
   timerFired(event) {
+    if (this.state != NORMAL_STATE) {
+      // Timers are only used in NORMAL_STATE. When in other states, don't
+      // mess with other states. Assume that it is in a state where the
+      // duration shouldn't matter any more.
+      this.duration = 0
+      return
+    }
     if (this.duration > 0) {
       this.duration -= 1
     }
@@ -118,6 +125,8 @@ class AudioStateMachine {
     this.currentPlayer.play()
   }
 
+  // TODO: This is not a public function. Move below or somehow organize it
+  // to make it obvious.
   abrupt() {
     if (this.currentPlayer) {
       this.currentPlayer.stop()
@@ -129,7 +138,14 @@ class AudioStateMachine {
     this.currentPlayer.play()
   }
 
+  // TODO: This is giveUp. phraseGroup uses giveup. Go with one not both.
   giveUp() {
+    if (this.state != NORMAL_STATE && this.state != WAITING_NORMAL_END_STATE) {
+      // This action is only valid while in normal state or waiting for it to
+      // end.
+      return
+    }
+
     if (this.currentPlayer) {
       this.currentPlayer.stop()
     }
@@ -140,6 +156,16 @@ class AudioStateMachine {
   }
 
   end() {
+    if (
+      this.state == LAST_MINUTE_STATE ||
+      this.state == GIVE_UP_STATE ||
+      this.state == END_STATE ||
+      this.state == START_FAST_STATE
+    ) {
+      // These are the states where end() transition is not allowed.
+      return
+    }
+
     // TODO: Check if it is in an allowed state. There may be states that this
     // is considered a NOP, i.e not allowed operation.
     if (this.currentPlayer) {
@@ -151,9 +177,11 @@ class AudioStateMachine {
       this.state == WAITING_NORMAL_END_STATE ||
       this.state == START_STATE
     ) {
-      this.giveUp()
+      this.abrupt()
       return
-    } else if (this.state == FAST_STATE) {
+    }
+
+    if (this.state == FAST_STATE) {
       this.state = END_STATE
 
       this.currentPlayer = this.phraseGroups[0].end()
@@ -243,14 +271,14 @@ class AudioStateMachine {
   }
 
   giveUpHandler(event) {
-    // Note that a timer could fire in this tate.
-    if (event.type == PLAYBACK_COMPLETE_TYPE) {
-      this.state = FAST_STATE
-      this.processNext(new Operation(NULL_OPERATION_TYPE))
-    }
+    assert(event.type != MINUTE_COUNT_DOWN_OPERATION_TYPE)
+    this.state = FAST_STATE
+    this.processNext(new Operation(NULL_OPERATION_TYPE))
   }
 
   fastHandler(event) {
+    assert(event.type != MINUTE_COUNT_DOWN_OPERATION_TYPE)
+
     // Note that the event doesn't matter. Once in fast mode it stays in
     // fast until the user initiates an action.
     this.currentPlayer = this.phraseGroups[0].fast()
