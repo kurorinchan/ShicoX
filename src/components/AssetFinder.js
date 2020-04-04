@@ -65,7 +65,7 @@ function exploreShicoStart(dir) {
     's',
     'sf',
     'sg',
-    'sz'
+    'sz',
   ])
 }
 
@@ -79,7 +79,7 @@ function pickRandomPlayer(array) {
 }
 
 function findPathAndRemove(filename, paths) {
-  const foundIndex = paths.findIndex(function(f) {
+  const foundIndex = paths.findIndex(function (f) {
     return path.basename(f) == filename
   })
   if (foundIndex == -1) {
@@ -90,27 +90,26 @@ function findPathAndRemove(filename, paths) {
   return itemPath
 }
 
-function allStartingWithAsPlayer(prefix, paths, audioCreateFunction) {
+function allStartingWithAsPlayer(prefix, paths) {
   const players = []
   for (const filePath of paths) {
     if (path.basename(filePath).startsWith(prefix)) {
-      players.push(new Player(filePath, audioCreateFunction))
+      players.push(new Player(filePath))
     }
   }
   return players
 }
 
 class Player {
-  constructor(audioFilePath, audioCreateFunction) {
+  constructor(audioFilePath) {
     this.path = audioFilePath
     this.onplayendedCallback = null
     this.audio = null
-    this.audioCreateFunction = audioCreateFunction
     this.volume = 100
   }
 
   prepare() {
-    this.audio = this.audioCreateFunction(this.path)
+    this.audio = createAudio(this.path)
     this.audio.volume = this.volume
     this.audio.onended = this.onended.bind(this)
   }
@@ -151,10 +150,10 @@ class Player {
   }
 }
 
-function pathsToPlayers(paths, audioCreateFunction) {
+function pathsToPlayers(paths) {
   const players = []
   for (const p of paths) {
-    players.push(new Player(p, audioCreateFunction))
+    players.push(new Player(p))
   }
   return players
 }
@@ -180,7 +179,7 @@ const SINGLE_FILE_COUNT_DOWN_VOICE = 'single-file-count-down-voice'
 const END_VOICE = 'end'
 const EXIT_VOICE = 'exit'
 
-function exploreShicoDir(shicoDir, audioCreateFunction) {
+function exploreShicoDir(shicoDir) {
   const files = fs.readdirSync(shicoDir)
   let shicoFastPaths = null
   let shicoNormalPaths = null
@@ -206,99 +205,57 @@ function exploreShicoDir(shicoDir, audioCreateFunction) {
 
   // TODO: Handle the case when one of them is not populated.
   const shicoMapping = {}
-  shicoMapping[SHICO_FAST_VOICE] = pathsToPlayers(
-    shicoFastPaths,
-    audioCreateFunction
-  )
-  shicoMapping[SHICO_VOICE] = pathsToPlayers(
-    shicoNormalPaths,
-    audioCreateFunction
-  )
+  shicoMapping[SHICO_FAST_VOICE] = pathsToPlayers(shicoFastPaths)
+  shicoMapping[SHICO_VOICE] = pathsToPlayers(shicoNormalPaths)
 
   // TODO: Make a constant for the string.
-  const found = shicoFinishPaths.find(function(element) {
+  const found = shicoFinishPaths.find(function (element) {
     return path.basename(element) == 'count.wav'
   })
   // TODO: handle not found.
-  shicoMapping[SINGLE_FILE_COUNT_DOWN_VOICE] = [
-    new Player(found, audioCreateFunction)
-  ]
+  shicoMapping[SINGLE_FILE_COUNT_DOWN_VOICE] = [new Player(found)]
 
-  shicoMapping[EXIT_VOICE] = allStartingWithAsPlayer(
-    'end',
-    shicoFinishPaths,
-    audioCreateFunction
-  )
-  shicoMapping[END_VOICE] = allStartingWithAsPlayer(
-    'za',
-    shicoFinishPaths,
-    audioCreateFunction
-  )
-  shicoMapping[ABRUPT_VOICE] = allStartingWithAsPlayer(
-    'zb',
-    shicoFinishPaths,
-    audioCreateFunction
-  )
+  shicoMapping[EXIT_VOICE] = allStartingWithAsPlayer('end', shicoFinishPaths)
+  shicoMapping[END_VOICE] = allStartingWithAsPlayer('za', shicoFinishPaths)
+  shicoMapping[ABRUPT_VOICE] = allStartingWithAsPlayer('zb', shicoFinishPaths)
 
   shicoMapping[LAST_MINUTE_VOICE] = allStartingWithAsPlayer(
     'sf',
-    shicoStartPaths,
-    audioCreateFunction
+    shicoStartPaths
   )
-  shicoMapping[GIVE_UP_VOICE] = allStartingWithAsPlayer(
-    'sg',
-    shicoStartPaths,
-    audioCreateFunction
-  )
+  shicoMapping[GIVE_UP_VOICE] = allStartingWithAsPlayer('sg', shicoStartPaths)
   shicoMapping[START_FAST_VOICE] = allStartingWithAsPlayer(
     'sz',
-    shicoStartPaths,
-    audioCreateFunction
+    shicoStartPaths
   )
 
   // These modify the array so needs more care.
   // TODO: For organizational purposes, put this in a function.
   let filePath = findPathAndRemove('cdownxxx1.wav', shicoStartPaths)
   if (filePath) {
-    shicoMapping[ONE_MIN_COUNT_DOWN_VOIDE] = new Player(
-      filePath,
-      audioCreateFunction
-    )
+    shicoMapping[ONE_MIN_COUNT_DOWN_VOIDE] = new Player(filePath)
   }
 
   filePath = findPathAndRemove('cdownxxx2.wav', shicoStartPaths)
   if (filePath) {
-    shicoMapping[TWO_MIN_COUNT_DOWN_VOIDE] = new Player(
-      filePath,
-      audioCreateFunction
-    )
+    shicoMapping[TWO_MIN_COUNT_DOWN_VOIDE] = new Player(filePath)
   }
   filePath = findPathAndRemove('cdownxx3.wav', shicoStartPaths)
   if (filePath) {
-    shicoMapping[THREE_MIN_COUNT_DOWN_VOIDE] = new Player(
-      filePath,
-      audioCreateFunction
-    )
+    shicoMapping[THREE_MIN_COUNT_DOWN_VOIDE] = new Player(filePath)
   }
   filePath = findPathAndRemove('cdownxxx4.wav', shicoStartPaths)
   if (filePath) {
-    shicoMapping[FOUR_MIN_COUNT_DOWN_VOIDE] = new Player(
-      filePath,
-      audioCreateFunction
-    )
+    shicoMapping[FOUR_MIN_COUNT_DOWN_VOIDE] = new Player(filePath)
   }
   filePath = findPathAndRemove('cdownxxx5.wav', shicoStartPaths)
   if (filePath) {
-    shicoMapping[FIVE_MIN_COUNT_DOWN_VOIDE] = new Player(
-      filePath,
-      audioCreateFunction
-    )
+    shicoMapping[FIVE_MIN_COUNT_DOWN_VOIDE] = new Player(filePath)
   }
 
   shicoMapping[COUNT_DOWN_VOICE] = allStartingWithAsPlayer(
     'cdown',
-    shicoStartPaths,
-    audioCreateFunction
+    shicoStartPaths
   )
 
   const shicoStartPlayers = []
@@ -313,14 +270,14 @@ function exploreShicoDir(shicoDir, audioCreateFunction) {
       filename.startsWith('sz')
     if (isOneOfOthers) continue
 
-    shicoStartPlayers.push(new Player(filePath, audioCreateFunction))
+    shicoStartPlayers.push(new Player(filePath))
   }
   shicoMapping[START_VOICE] = shicoStartPlayers
 
   return shicoMapping
 }
 
-function exploreVoiceDir(voiceDir, audioCreateFunction) {
+function exploreVoiceDir(voiceDir) {
   const files = fs.readdirSync(voiceDir)
   let fastPaths = null
   let silencePaths = null
@@ -336,26 +293,22 @@ function exploreVoiceDir(voiceDir, audioCreateFunction) {
         break
       case NORMAL_PHRASE_DIR:
         normalPaths = exploreDirForPrefixes(path.join(voiceDir, filename), [
-          'v'
+          'v',
         ])
         break
     }
   }
 
   const pharseMapping = {}
-  pharseMapping[FAST_VOICE] = pathsToPlayers(fastPaths, audioCreateFunction)
-  pharseMapping[SILENCE_VOICE] = pathsToPlayers(
-    silencePaths,
-    audioCreateFunction
-  )
-  pharseMapping[PHRASE_VOICE] = pathsToPlayers(normalPaths, audioCreateFunction)
+  pharseMapping[FAST_VOICE] = pathsToPlayers(fastPaths)
+  pharseMapping[SILENCE_VOICE] = pathsToPlayers(silencePaths)
+  pharseMapping[PHRASE_VOICE] = pathsToPlayers(normalPaths)
   return pharseMapping
 }
 
 // This is the function that should be used in a browser to create an Audio
 // element. However, while unit testing, creating it may not be ideal. So
-// inject a different function to AudioAssetGroup's contructor instead if
-// it has to be modified.
+// this is injected for testing. Do not change this.
 function createAudio(path) {
   return new Audio('file://' + path)
 }
@@ -364,21 +317,14 @@ class AudioAssetGroup {
   // TODO: The create function might be replaced by sinon's injection.
   // Also consider moving the file exploration logic out of the constructor
   // which might help better test this.
-  constructor(shicoDir, voiceDir, audioCreateFunction = createAudio) {
+  constructor(shicoDir, voiceDir) {
     this.shicoDir = shicoDir
     this.voiceDir = voiceDir
     this.shicoVolume = INIT_VOLUME
     this.phraseVolume = INIT_VOLUME
-    this.audioCreateFunction = audioCreateFunction
 
-    const shicoMapping = exploreShicoDir(
-      this.shicoDir,
-      this.audioCreateFunction
-    )
-    const phraseMapping = exploreVoiceDir(
-      this.voiceDir,
-      this.audioCreateFunction
-    )
+    const shicoMapping = exploreShicoDir(this.shicoDir)
+    const phraseMapping = exploreVoiceDir(this.voiceDir)
     // TODO: Keep the two separate. Otherwise volume management gets more complex.
     this.allPlayers = Object.assign(shicoMapping, phraseMapping)
   }
@@ -508,7 +454,7 @@ class AudioAssetGroup {
 class AssetFinder {
   constructor(assetDir) {
     this.dir = assetDir
-    this.audioAssetGroupCreateFunc = function(dir1, dir2) {
+    this.audioAssetGroupCreateFunc = function (dir1, dir2) {
       return new AudioAssetGroup(dir1, dir2)
     }
   }
@@ -541,5 +487,5 @@ class AssetFinder {
 module.exports = {
   AudioAssetGroup,
   AssetFinder,
-  Player
+  Player,
 }
