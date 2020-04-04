@@ -1,14 +1,9 @@
 var asm = require('../src/components/AudioStateMachine')
 const sinon = require('sinon')
 
-class Group {
-  start() {}
-}
-
 const AudioStateMachine = asm.AudioStateMachine
 
 var chai = require('chai'),
-  should = chai.should(),
   expect = chai.expect
 
 class FakePlayer {
@@ -40,6 +35,7 @@ class FakeGroup {
   perMinuteNotification(timeRemaining) {}
 
   start() {}
+  startFast() {}
   fast() {}
   phrase() {}
   lastMinute() {}
@@ -708,6 +704,7 @@ describe('AudioStatemachine', function() {
     phraseGroupMock.verify()
   })
 
+  // The timer event should not cause any problems. It should just be ignored.
   it('timer fires when giveup is playing', function() {
     const machine = new AudioStateMachine()
     const fakeGroup = new FakeGroup()
@@ -754,6 +751,69 @@ describe('AudioStatemachine', function() {
     phraseGroupMock.verify()
   })
 
-  // TODO: Test a case where it stays in 'fast' for while.
+  // start fast and stay in FAST state.
+  it('start fast', function() {
+    const machine = new AudioStateMachine()
+    const fakeGroup = new FakeGroup()
+    const fakePlayer = new FakePlayer('generic')
+    const phraseGroupMock = sinon.mock(fakeGroup)
+    phraseGroupMock
+      .expects('startFast')
+      .once()
+      .returns(fakePlayer)
+
+    machine.addPhraseGroup(fakeGroup)
+    machine.playFast()
+
+    phraseGroupMock
+      .expects('fast')
+      .atLeast(1)
+      .returns(fakePlayer)
+
+    // 'startFast' ends. Plays 'fast'.
+    fakePlayer.fireCallback()
+    // 'fast' ends. Plays the next 'fast'. Repeat a few times.
+    fakePlayer.fireCallback()
+    fakePlayer.fireCallback()
+    fakePlayer.fireCallback()
+
+    phraseGroupMock.verify()
+  })
+
+  it('start fast and play till end', function() {
+    const machine = new AudioStateMachine()
+    const fakeGroup = new FakeGroup()
+    const fakePlayer = new FakePlayer('generic')
+    const phraseGroupMock = sinon.mock(fakeGroup)
+    phraseGroupMock
+      .expects('startFast')
+      .once()
+      .returns(fakePlayer)
+    phraseGroupMock
+      .expects('fast')
+      .atLeast(1)
+      .returns(fakePlayer)
+
+    machine.addPhraseGroup(fakeGroup)
+    machine.playFast()
+
+    // 'startFast' ends. Plays 'fast'.
+    fakePlayer.fireCallback()
+    // 'fast' ends. Plays the next 'fast'.
+    fakePlayer.fireCallback()
+
+    phraseGroupMock
+      .expects('end')
+      .once()
+      .returns(fakePlayer)
+
+    machine.end()
+
+    // 'end' finishes.
+    fakePlayer.fireCallback()
+
+    phraseGroupMock.verify()
+  })
+
   // TODO: Add tests for invalid transitions initiated by users.
 })

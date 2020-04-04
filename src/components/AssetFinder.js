@@ -69,10 +69,25 @@ function exploreShicoStart(dir) {
   ])
 }
 
+function preparePlayer(player) {
+  player.prepare()
+  return player
+}
+
 function pickRandomPlayer(array) {
-  const element = array[Math.floor(Math.random() * array.length)]
-  element.prepare()
-  return element
+  return preparePlayer(array[Math.floor(Math.random() * array.length)])
+}
+
+function findPathAndRemove(filename, paths) {
+  const foundIndex = paths.findIndex(function(f) {
+    return path.basename(f) == filename
+  })
+  if (foundIndex == -1) {
+    return
+  }
+  const itemPath = paths[foundIndex]
+  paths.splice(foundIndex, 1)
+  return itemPath
 }
 
 function allStartingWithAsPlayer(prefix, paths, audioCreateFunction) {
@@ -91,10 +106,12 @@ class Player {
     this.onplayendedCallback = null
     this.audio = null
     this.audioCreateFunction = audioCreateFunction
+    this.volume = 100
   }
 
   prepare() {
     this.audio = this.audioCreateFunction(this.path)
+    this.audio.volume = this.volume
     this.audio.onended = this.onended.bind(this)
   }
 
@@ -121,8 +138,12 @@ class Player {
     this.audio.pause()
   }
 
+  // The value passed to this method must be in range [0, 100]
   setVolume(volume) {
-    this.audio.volume = volume
+    this.volume = volume / 100
+    if (this.audio) {
+      this.audio.volume = this.volume
+    }
   }
 
   get pathForTesting() {
@@ -149,6 +170,11 @@ const LAST_MINUTE_VOICE = 'lastminute'
 const FAST_VOICE = 'fast'
 const SHICO_FAST_VOICE = 'shicofast'
 const COUNT_DOWN_VOICE = 'countdown'
+const FIVE_MIN_COUNT_DOWN_VOIDE = '5min-countdown'
+const FOUR_MIN_COUNT_DOWN_VOIDE = '4min-countdown'
+const THREE_MIN_COUNT_DOWN_VOIDE = '3min-countdown'
+const TWO_MIN_COUNT_DOWN_VOIDE = '2min-countdown'
+const ONE_MIN_COUNT_DOWN_VOIDE = '1min-countdown'
 // This is the single file that has "5,4,3,2,1"
 const SINGLE_FILE_COUNT_DOWN_VOICE = 'single-file-count-down-voice'
 const END_VOICE = 'end'
@@ -229,6 +255,46 @@ function exploreShicoDir(shicoDir, audioCreateFunction) {
     shicoStartPaths,
     audioCreateFunction
   )
+
+  // These modify the array so needs more care.
+  // TODO: For organizational purposes, put this in a function.
+  let filePath = findPathAndRemove('cdownxxx1.wav', shicoStartPaths)
+  if (filePath) {
+    shicoMapping[ONE_MIN_COUNT_DOWN_VOIDE] = new Player(
+      filePath,
+      audioCreateFunction
+    )
+  }
+
+  filePath = findPathAndRemove('cdownxxx2.wav', shicoStartPaths)
+  if (filePath) {
+    shicoMapping[TWO_MIN_COUNT_DOWN_VOIDE] = new Player(
+      filePath,
+      audioCreateFunction
+    )
+  }
+  filePath = findPathAndRemove('cdownxx3.wav', shicoStartPaths)
+  if (filePath) {
+    shicoMapping[THREE_MIN_COUNT_DOWN_VOIDE] = new Player(
+      filePath,
+      audioCreateFunction
+    )
+  }
+  filePath = findPathAndRemove('cdownxxx4.wav', shicoStartPaths)
+  if (filePath) {
+    shicoMapping[FOUR_MIN_COUNT_DOWN_VOIDE] = new Player(
+      filePath,
+      audioCreateFunction
+    )
+  }
+  filePath = findPathAndRemove('cdownxxx5.wav', shicoStartPaths)
+  if (filePath) {
+    shicoMapping[FIVE_MIN_COUNT_DOWN_VOIDE] = new Player(
+      filePath,
+      audioCreateFunction
+    )
+  }
+
   shicoMapping[COUNT_DOWN_VOICE] = allStartingWithAsPlayer(
     'cdown',
     shicoStartPaths,
@@ -313,7 +379,17 @@ class AudioAssetGroup {
       this.voiceDir,
       this.audioCreateFunction
     )
+    // TODO: Keep the two separate. Otherwise volume management gets more complex.
     this.allPlayers = Object.assign(shicoMapping, phraseMapping)
+  }
+
+  // This may be just used for bookkeeping. Does not affect the functionality.
+  setGroupName(name) {
+    this.groupName = name
+  }
+
+  getGroupName() {
+    return this.groupName
   }
 
   assetGroupNumber() {
@@ -327,9 +403,26 @@ class AudioAssetGroup {
     this.shicoVolume = clampVolume(volume)
   }
 
+  getShicoVolume() {
+    return this.shicoVolume
+  }
+
   // TODO: Update volume for all players under voice.
   setPharseVolume(volume) {
     this.phraseVolume = clampVolume(volume)
+    for (const playersSubset of Object.values(this.allPlayers)) {
+      if (Array.isArray(playersSubset)) {
+        for (const player of playersSubset) {
+          player.setVolume(this.phraseVolume)
+        }
+      } else {
+        playersSubset.setVolume(this.phraseVolume)
+      }
+    }
+  }
+
+  getPhraseVolume() {
+    return this.phraseVolume
   }
 
   // TODO: Players returned from these functions should be "prepared".
@@ -353,11 +446,27 @@ class AudioAssetGroup {
     return pickRandomPlayer(this.allPlayers[SILENCE_VOICE])
   }
 
-  perMinuteNofitication(minutesRemaining) {
-    // TODO: use minutesRemaining to choose the right per minute.
-    if (minutesRemaining > 5) {
-      return pickRandomPlayer(this.allPlayers[COUNT_DOWN_VOICE])
+  perMinuteNotification(minutesRemaining) {
+    if (minutesRemaining == 5 && FIVE_MIN_COUNT_DOWN_VOIDE in this.allPlayers) {
+      return preparePlayer(this.allPlayers[FIVE_MIN_COUNT_DOWN_VOIDE])
     }
+    if (minutesRemaining == 4 && FOUR_MIN_COUNT_DOWN_VOIDE in this.allPlayers) {
+      return preparePlayer(this.allPlayers[FOUR_MIN_COUNT_DOWN_VOIDE])
+    }
+    if (
+      minutesRemaining == 3 &&
+      THREE_MIN_COUNT_DOWN_VOIDE in this.allPlayers
+    ) {
+      return preparePlayer(this.allPlayers[THREE_MIN_COUNT_DOWN_VOIDE])
+    }
+    if (minutesRemaining == 2 && TWO_MIN_COUNT_DOWN_VOIDE in this.allPlayers) {
+      return preparePlayer(this.allPlayers[TWO_MIN_COUNT_DOWN_VOIDE])
+    }
+    if (minutesRemaining == 1 && ONE_MIN_COUNT_DOWN_VOIDE in this.allPlayers) {
+      return preparePlayer(this.allPlayers[ONE_MIN_COUNT_DOWN_VOIDE])
+    }
+
+    // If there isn't any >5 min countdowns, then play at random.
     return pickRandomPlayer(this.allPlayers[COUNT_DOWN_VOICE])
   }
 

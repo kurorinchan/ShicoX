@@ -26,7 +26,7 @@
       :track-number="item.trackNumber"
       :checked="item.checked"
       @volume-up="ingoVolumeUp"
-      @voluem-down="ingoVolumeDown"
+      @volume-down="ingoVolumeDown"
     />
   </div>
 </template>
@@ -58,7 +58,7 @@ console.log(audioResoucePath)
 const MIN_TO_SECONDS = 60
 
 const SHICO_KEY = 'shicoAudioTrack'
-const SHICO_INIT_VOLUME = 7
+const SHICO_INIT_VOLUME = 100
 const INIT_VOLUME = 100
 
 // TODO: Possibly move all the logic out from here and put it into a separate
@@ -75,32 +75,31 @@ export default {
     const appPath = 'file://' + audioResoucePath
     const finder = new af.AssetFinder(audioResoucePath)
     const groups = finder.findAudioAssetGroups()
+    const ingoVoices = []
     const stateMachine = new asm.AudioStateMachine()
-    for (const group of groups) {
+    for (const [index, group] of groups.entries()) {
+      group.setPharseVolume(INIT_VOLUME)
+      group.setShicoVolume(SHICO_INIT_VOLUME)
       stateMachine.addPhraseGroup(group)
+
+      // TODO: Consider making AudioAssetGroup the object to be registered.
+      // It would require some kind of coordination between these fields that
+      // get displayed and the class itself.
+      ingoVoices.push({
+        volume: group.getPhraseVolume(),
+        checked: true,
+        pan: 'center',
+        trackNumber: group.assetGroupNumber(),
+        group
+      })
     }
 
     return {
-      stateMachine: stateMachine,
+      stateMachine,
       remainingTime: 10 * MIN_TO_SECONDS,
       appPath: appPath,
       pan: 'left',
-      ingoVoices: [
-        {
-          volume: 100,
-          checked: true,
-          pan: 'center',
-          trackNumber: 1,
-          playerName: 'player1'
-        },
-        {
-          volume: 100,
-          checked: false,
-          pan: 'center',
-          trackNumber: 2,
-          playerName: 'player2'
-        }
-      ]
+      ingoVoices
     }
   },
   computed: {
@@ -117,8 +116,12 @@ export default {
     }
   },
   methods: {
+    oncountdown: function(timeRemaining) {
+      this.displayedRemainingTime = timeRemaining
+    },
     start: function() {
-      this.stateMachine.play(1)
+      this.stateMachine.oncountdown = this.oncountdown.bind(this)
+      this.stateMachine.play(this.displayedRemainingTime)
     },
     stop: function() {
       this.stateMachine.stop()
@@ -128,8 +131,26 @@ export default {
     },
     shicoVolumeUp: function() {},
     shicoVolumeDown: function() {},
-    ingoVolumeUp: function(entry) {},
-    ingoVolumeDown: function(entry) {},
+    ingoVolumeUp: function(trackNumber) {
+      // TODO: Using trackNumber to find the entry in the array is not scalable.
+      // Reconsider this if there is a chance this gets large.
+      const voices = this.ingoVoices.find(function(voices) {
+        return voices.trackNumber == trackNumber
+      })
+      const group = voices.group
+      group.setPharseVolume(group.getPhraseVolume() + 1)
+      voices.volume = group.getPhraseVolume()
+      console.log(voices.volume)
+    },
+    ingoVolumeDown: function(trackNumber) {
+      const voices = this.ingoVoices.find(function(voices) {
+        return voices.trackNumber == trackNumber
+      })
+      const group = voices.group
+      group.setPharseVolume(group.getPhraseVolume() - 1)
+      voices.volume = group.getPhraseVolume()
+      console.log(voices.volume)
+    },
     giveup: function() {
       this.stateMachine.giveUp()
     },

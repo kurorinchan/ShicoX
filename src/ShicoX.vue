@@ -1,8 +1,8 @@
 <template>
   <div id="shicoapp">
     <p>Greetings! asdf</p>
-    <p> {{ path }} </p>
-    <Controls/>
+    <p>{{ path }}</p>
+    <Controls />
   </div>
 </template>
 
@@ -14,7 +14,7 @@ export default {
   components: {
     Controls
   },
-  data () {
+  data() {
     return {
       path: process.env.PORTABLE_EXECUTABLE_DIR
     }
@@ -32,6 +32,5 @@ export default {
   margin-top: 60px;
   width: 600px;
   height: 600px;
-  color: red;
 }
 </style>
