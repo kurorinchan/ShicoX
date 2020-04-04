@@ -1,7 +1,6 @@
 var audioasset = require('../src/components/AssetFinder')
 const fs = require('fs')
 const sinon = require('sinon')
-const jsdom = require('jsdom')
 
 var chai = require('chai'),
   should = chai.should(),
@@ -77,7 +76,6 @@ describe('AudioAsset', function() {
 
   describe('Assets', function() {
     this.beforeEach(function() {
-      // TODO: Consider using jsDOM and sinon to mock window.Audio.
       this.group = new audioasset.AudioAssetGroup(
         '/root/shiko01',
         '/root/voice01',
