@@ -5,7 +5,7 @@
       type="number"
       min="0"
       step="1"
-      v-bind:value="duration"
+      value="10"
       v-on:input="$emit('new-duration', $event.target.value)"
     />
     分くらい我慢したい
@@ -14,12 +14,7 @@
 
 <script>
 export default {
-  name: 'CountDownTimer',
-  props: {
-    // TODO: Remove this props. This is only used as initial value which
-    // should be hard coded in this component.
-    duration: Number
-  }
+  name: 'CountDownTimer'
 }
 </script>
 

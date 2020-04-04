@@ -246,7 +246,7 @@ class AudioStateMachine {
     }
   }
 
-  waitingNormalEndState(event) {
+  waitingNormalEndStateHandler(event) {
     if (event.type != PLAYBACK_COMPLETE_TYPE) {
       return
     }
@@ -300,7 +300,7 @@ class AudioStateMachine {
     } else if (this.state == NORMAL_STATE) {
       this.normalHandler(event)
     } else if (this.state == WAITING_NORMAL_END_STATE) {
-      this.waitingNormalEndState(event)
+      this.waitingNormalEndStateHandler(event)
     } else if (this.state == LAST_MINUTE_STATE) {
       this.lastMinuteHandler(event)
     } else if (this.state == GIVE_UP_STATE) {

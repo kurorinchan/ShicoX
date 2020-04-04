@@ -1,22 +1,19 @@
 <template>
   <div id="controls">
-    <CountDownTimer
-      v-bind:duration="displayedRemainingTime"
-      v-on:new-duration="displayedRemainingTime = $event"
-    />
-    {{ remainingTime }}
+    <CountDownTimer @new-duration="displayedRemainingTime = $event" />
+    あと{{ displayedRemainingTime }}分
     <ActionButtons
-      v-on:start="start"
-      v-on:stop="stop"
-      v-on:start-fast="startFast"
-      v-on:giveup="giveup"
-      v-on:last="last"
+      @start="start"
+      @stop="stop"
+      @start-fast="startFast"
+      @giveup="giveup"
+      @last="last"
     />
     <ShicoVoiceController
-      v-bind:volume="shicoVolume"
-      v-on:volume-up="shicoVolumeUp"
-      v-on:volume-down="shicoVolumeDown"
-      v-bind:pan="pan"
+      :volume="shicoVolume"
+      @volume-up="shicoVolumeUp"
+      @volume-down="shicoVolumeDown"
+      :pan="pan"
     />
     <IngoVoiceController
       v-for="item in ingoVoices"
@@ -61,8 +58,6 @@ const SHICO_KEY = 'shicoAudioTrack'
 const SHICO_INIT_VOLUME = 100
 const INIT_VOLUME = 100
 
-// TODO: Possibly move all the logic out from here and put it into a separate
-// class/object that hold the state. This shoul probably be a slim object.
 export default {
   name: 'Controls',
   components: {
