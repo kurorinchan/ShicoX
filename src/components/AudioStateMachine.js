@@ -2,9 +2,9 @@
 
 const assert = require('assert')
 const INIT_STATE = Symbol('init')
+const START_STATE = Symbol('start')
 const FAST_STATE = Symbol('fast')
 const START_FAST_STATE = Symbol('startfast')
-const START_STATE = Symbol('start')
 const NORMAL_STATE = Symbol('normal')
 const WAITING_NORMAL_END_STATE = Symbol('waiting-normal-end')
 const ABRUPT_STATE = Symbol('abrupt')
@@ -46,6 +46,21 @@ class MinuteCountDownEvent extends Operation {
 // in milliseconds
 const ONE_MINUTE = 60000
 
+function findPlayerAndRemove(player, players) {
+  const index = players.findIndex(function (p) {
+    return p.assetGroupNumber == player.assetGroupNumber
+  })
+  if (index == -1) {
+    console.warn(
+      'Failed to find player for group ' +
+        player.assetGroupNumber +
+        ' in the array.'
+    )
+    return
+  }
+  players.splice(index, 1)
+}
+
 class AudioStateMachine {
   constructor() {
     this.duration = 0
@@ -59,7 +74,7 @@ class AudioStateMachine {
     // TODO: Accept multiple players. It would have to keep track of where
     // the player came from (i.e. which group), in order to be able to figure
     // out which group to play from next.
-    this.currentPlayer = null
+    this.phrasePlayers = []
   }
 
   setShicoGroup(group) {
@@ -108,34 +123,37 @@ class AudioStateMachine {
       return
     }
 
-    // This should start the timer regardless of whether any audio groups have
-    // been registered. They can be added/changed/removed later.
     this.state = START_STATE
-    this.currentPlayer = this.phraseGroups[0].start()
-    this.currentPlayer.onplayended = this.completedPhrasePlayback.bind(this)
-    this.currentPlayer.play()
-
-    // No need to call processNext(). The event handlers will do it.
+    for (const group of this.phraseGroups) {
+      const player = group.start()
+      this.phrasePlayers.push(player)
+      player.onplayended = this.completedPhrasePlayback.bind(this)
+      player.play()
+    }
   }
 
   playFast() {
     this.state = START_FAST_STATE
-    this.currentPlayer = this.phraseGroups[0].startFast()
-    this.currentPlayer.onplayended = this.completedPhrasePlayback.bind(this)
-    this.currentPlayer.play()
+    for (const group of this.phraseGroups) {
+      const player = group.startFast()
+      this.phrasePlayers.push(player)
+      player.onplayended = this.completedPhrasePlayback.bind(this)
+      player.play()
+    }
   }
 
   // TODO: This is not a public function. Move below or somehow organize it
   // to make it obvious.
   abrupt() {
-    if (this.currentPlayer) {
-      this.currentPlayer.stop()
-    }
+    this.stopAllPhrasePlayback()
 
     this.state = ABRUPT_STATE
-    this.currentPlayer = this.phraseGroups[0].abrupt()
-    this.currentPlayer.onplayended = this.completedPhrasePlayback.bind(this)
-    this.currentPlayer.play()
+    for (const group of this.phraseGroups) {
+      const player = group.abrupt()
+      this.phrasePlayers.push(player)
+      player.onplayended = this.completedPhrasePlayback.bind(this)
+      player.play()
+    }
   }
 
   // TODO: This is giveUp. phraseGroup uses giveup. Go with one not both.
@@ -146,13 +164,15 @@ class AudioStateMachine {
       return
     }
 
-    if (this.currentPlayer) {
-      this.currentPlayer.stop()
-    }
+    this.stopAllPhrasePlayback()
+
     this.state = GIVE_UP_STATE
-    this.currentPlayer = this.phraseGroups[0].giveup()
-    this.currentPlayer.onplayended = this.completedPhrasePlayback.bind(this)
-    this.currentPlayer.play()
+    for (const group of this.phraseGroups) {
+      const player = group.giveup()
+      this.phrasePlayers.push(player)
+      player.onplayended = this.completedPhrasePlayback.bind(this)
+      player.play()
+    }
   }
 
   end() {
@@ -166,11 +186,7 @@ class AudioStateMachine {
       return
     }
 
-    // TODO: Check if it is in an allowed state. There may be states that this
-    // is considered a NOP, i.e not allowed operation.
-    if (this.currentPlayer) {
-      this.currentPlayer.stop()
-    }
+    this.stopAllPhrasePlayback()
 
     if (
       this.state == NORMAL_STATE ||
@@ -181,22 +197,33 @@ class AudioStateMachine {
       return
     }
 
-    if (this.state == FAST_STATE) {
-      this.state = END_STATE
+    if (this.state != FAST_STATE) {
+      return
+    }
 
-      this.currentPlayer = this.phraseGroups[0].end()
-      this.currentPlayer.onplayended = this.completedPhrasePlayback.bind(this)
-      this.currentPlayer.play()
+    this.state = END_STATE
+    for (const group of this.phraseGroups) {
+      const player = group.end()
+      this.phrasePlayers.push(player)
+      player.onplayended = this.completedPhrasePlayback.bind(this)
+      player.play()
     }
   }
 
   stop() {
-    if (this.currentPlayer) {
-      this.currentPlayer.stop()
-    }
+    this.stopAllPhrasePlayback()
     console.log('stop')
-    this.currentPlayer = null
     this.state = INIT_STATE
+  }
+
+  // private.
+  // This will stop all the players that are playing and will empty the
+  // phrasePlayers array.
+  stopAllPhrasePlayback() {
+    for (const player of this.phrasePlayers) {
+      player.stop()
+    }
+    this.phrasePlayers = []
   }
 
   // Non-public functions.
@@ -206,7 +233,16 @@ class AudioStateMachine {
   }
 
   startHandler(event) {
-    this.currentPlayer = null
+    if (event.type != PLAYBACK_COMPLETE_TYPE) {
+      return
+    }
+
+    findPlayerAndRemove(event.player, this.phrasePlayers)
+    if (this.phrasePlayers.length > 0) {
+      // Keep waiting for all players to end.
+      return
+    }
+
     this.state = NORMAL_STATE
     if (this.duration > 0) {
       setTimeout(this.timerFired.bind(this), ONE_MINUTE)
@@ -215,27 +251,57 @@ class AudioStateMachine {
   }
 
   startFastHandler(event) {
-    this.currentPlayer = null
+    findPlayerAndRemove(event.player, this.phrasePlayers)
+    if (this.phrasePlayers.length > 0) {
+      // Keep waiting for all players to end.
+      return
+    }
+
     this.state = FAST_STATE
     this.processNext(new Operation(NULL_OPERATION_TYPE))
   }
 
+  // private
+  findPhraseGroup(assetGroupNumber) {
+    return this.phraseGroups.find(function (g) {
+      return g.assetGroupNumber() == assetGroupNumber
+    })
+  }
+
   normalHandler(event) {
-    if (
-      event.type == NULL_OPERATION_TYPE ||
-      event.type == PLAYBACK_COMPLETE_TYPE
-    ) {
-      this.currentPlayer = this.phraseGroups[0].phrase()
-      this.currentPlayer.onplayended = this.completedPhrasePlayback.bind(this)
-      this.currentPlayer.play()
+    if (event.type == NULL_OPERATION_TYPE) {
+      if (this.phrasePlayers.length > 0) {
+        console.warn('There should not be any players in this state.')
+        this.stopAllPhrasePlayback()
+      }
+      for (const group of this.phraseGroups) {
+        const player = group.phrase()
+        this.phrasePlayers.push(player)
+        player.onplayended = this.completedPhrasePlayback.bind(this)
+        player.play()
+      }
+    } else if (event.type == PLAYBACK_COMPLETE_TYPE) {
+      const player = event.player
+      findPlayerAndRemove(player, this.phrasePlayers)
+      const group = this.findPhraseGroup(player.assetGroupNumber)
+      if (!group) {
+        // The group has been removed while the player was playing.
+        // TODO: Maybe this should be an invariance. IOW when a phrase group
+        // is removed, maybe it should stop all the players. Reconsider this
+        // logic.
+        return
+      }
+      const nextPlayer = group.phrase()
+      this.phrasePlayers.push(nextPlayer)
+      nextPlayer.onplayended = this.completedPhrasePlayback.bind(this)
+      nextPlayer.play()
     } else if (event.type == MINUTE_COUNT_DOWN_OPERATION_TYPE) {
       if (event.timeRemaining > 0) {
-        const notificationPlayer = this.phraseGroups[0].perMinuteNotification(
-          event.timeRemaining
-        )
-        notificationPlayer.play()
-        // No need to setup a onplayended callback. There is no action to take
-        // after this finishes playing, nor is it required to stop it forcefully.
+        for (const group of this.phraseGroups) {
+          // No need to setup a onplayended callback. There is no action to take
+          // after this finishes playing, nor is it required to stop it forcefully.
+          group.perMinuteNotification(event.timeRemaining).play()
+        }
         return
       }
       // Note that the player might still be playing, which is fine.
@@ -251,45 +317,99 @@ class AudioStateMachine {
       return
     }
 
+    findPlayerAndRemove(event.player, this.phrasePlayers)
+    if (this.phrasePlayers.length > 0) {
+      // Keep waiting for all players to end.
+      return
+    }
+
     this.state = LAST_MINUTE_STATE
-    this.currentPlayer = this.phraseGroups[0].lastMinute()
-    this.currentPlayer.onplayended = this.completedPhrasePlayback.bind(this)
-    this.currentPlayer.play()
+    for (const group of this.phraseGroups) {
+      const player = group.lastMinute()
+      this.phrasePlayers.push(player)
+      player.onplayended = this.completedPhrasePlayback.bind(this)
+      player.play()
+    }
   }
 
   lastMinuteHandler(event) {
     if (event.type != PLAYBACK_COMPLETE_TYPE) {
       return
     }
+
+    findPlayerAndRemove(event.player, this.phrasePlayers)
+    if (this.phrasePlayers.length > 0) {
+      // Keep waiting for all players to end.
+      return
+    }
+
     this.state = FAST_STATE
     this.processNext(new Operation(NULL_OPERATION_TYPE))
   }
 
   abruptHandler(event) {
     assert(event.type == PLAYBACK_COMPLETE_TYPE)
+    // TODO: Determine if this really has to wait for anything. The next state
+    // is a terminating state so it might not matter.
+    findPlayerAndRemove(event.player, this.phrasePlayers)
+    if (this.phrasePlayers.length > 0) {
+      return
+    }
     this.state = TERMINAL_STATE
   }
 
   giveUpHandler(event) {
     assert(event.type != MINUTE_COUNT_DOWN_OPERATION_TYPE)
+    findPlayerAndRemove(event.player, this.phrasePlayers)
+    if (this.phrasePlayers.length > 0) {
+      // Keep waiting for all players to end.
+      return
+    }
+
     this.state = FAST_STATE
     this.processNext(new Operation(NULL_OPERATION_TYPE))
   }
 
   fastHandler(event) {
     assert(event.type != MINUTE_COUNT_DOWN_OPERATION_TYPE)
+    if (event.type == NULL_OPERATION_TYPE) {
+      if (this.phrasePlayers.length > 0) {
+        console.warn('There should not be any players in this state.')
+        this.stopAllPhrasePlayback()
+      }
+      for (const group of this.phraseGroups) {
+        const player = group.fast()
+        this.phrasePlayers.push(player)
+        player.onplayended = this.completedPhrasePlayback.bind(this)
+        player.play()
+      }
+      return
+    }
 
-    // Note that the event doesn't matter. Once in fast mode it stays in
-    // fast until the user initiates an action.
-    this.currentPlayer = this.phraseGroups[0].fast()
-
-    this.currentPlayer.onplayended = this.completedPhrasePlayback.bind(this)
-    this.currentPlayer.play()
+    const player = event.player
+    findPlayerAndRemove(player, this.phrasePlayers)
+    const group = this.findPhraseGroup(player.assetGroupNumber)
+    if (!group) {
+      // The group has been removed while the player was playing.
+      // TODO: Maybe this should be an invariance. IOW when a phrase group
+      // is removed, maybe it should stop all the players. Reconsider this
+      // logic.
+      return
+    }
+    const nextPlayer = group.fast()
+    this.phrasePlayers.push(nextPlayer)
+    nextPlayer.onplayended = this.completedPhrasePlayback.bind(this)
+    nextPlayer.play()
   }
 
   endHandler(event) {
+    // TODO: Determine if this really has to wait for anything. The next state
+    // is a terminating state so it might not matter.
+    findPlayerAndRemove(event.player, this.phrasePlayers)
+    if (this.phrasePlayers.length > 0) {
+      return
+    }
     this.state = TERMINAL_STATE
-    this.currentPlayer = null
   }
 
   processNext(event) {
@@ -314,5 +434,5 @@ class AudioStateMachine {
 }
 
 module.exports = {
-  AudioStateMachine
+  AudioStateMachine,
 }

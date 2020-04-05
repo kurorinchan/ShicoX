@@ -27,7 +27,11 @@ class FakePlayer {
   prepare() {}
 
   fireCallback() {
-    this.cb()
+    this.cb(this)
+  }
+
+  get assetGroupNumber() {
+    return 1
   }
 }
 
@@ -42,6 +46,10 @@ class FakeGroup {
   abrupt() {}
   giveup() {}
   end() {}
+
+  assetGroupNumber() {
+    return 1
+  }
 }
 
 describe('AudioStatemachine', function () {

@@ -106,6 +106,15 @@ class Player {
     this.onplayendedCallback = null
     this.audio = null
     this.volume = 100
+    this.assetGroup = 0
+  }
+
+  get assetGroupNumber() {
+    return this.assetGroup
+  }
+
+  set assetGroupNumber(value) {
+    this.assetGroup = value
   }
 
   prepare() {
@@ -240,7 +249,7 @@ function exploreShicoDir(shicoDir) {
   if (filePath) {
     shicoMapping[TWO_MIN_COUNT_DOWN_VOIDE] = new Player(filePath)
   }
-  filePath = findPathAndRemove('cdownxx3.wav', shicoStartPaths)
+  filePath = findPathAndRemove('cdownxxx3.wav', shicoStartPaths)
   if (filePath) {
     shicoMapping[THREE_MIN_COUNT_DOWN_VOIDE] = new Player(filePath)
   }
@@ -327,6 +336,20 @@ class AudioAssetGroup {
     const phraseMapping = exploreVoiceDir(this.voiceDir)
     // TODO: Keep the two separate. Otherwise volume management gets more complex.
     this.allPlayers = Object.assign(shicoMapping, phraseMapping)
+
+    // TODO: Calling a method in ctor is probably not a good idea as it may not
+    // be completely setup. Move these non trivial operations into a seprate
+    // method.
+    const assetGroupNumber = this.assetGroupNumber()
+    for (const playersSubset of Object.values(this.allPlayers)) {
+      if (Array.isArray(playersSubset)) {
+        for (const player of playersSubset) {
+          player.assetGroupNumber = assetGroupNumber
+        }
+      } else {
+        playersSubset.assetGroupNumber = assetGroupNumber
+      }
+    }
   }
 
   // This may be just used for bookkeeping. Does not affect the functionality.
