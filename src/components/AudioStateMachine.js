@@ -18,10 +18,11 @@ function stub() {}
 // This is an event type that isn't really associated with anything.
 // Use this event for passing "no info" to a state handler, e.g. transition
 // to a next state that doesn't require any info from the previous.
-const NULL_OPERATION_TYPE = 0
-const PLAYBACK_COMPLETE_TYPE = 1
-const MINUTE_COUNT_DOWN_OPERATION_TYPE = 2
-const USER_INTERRUPT = 3
+const NULL_OPERATION_TYPE = Symbol('nullop')
+// TODO: Prefix this with "PHRASE_".
+const PLAYBACK_COMPLETE_TYPE = Symbol('phrase playback complete')
+const SHICO_PLAYBACK_COMPLETE_TYPE = Symbol('shico playback complete')
+const MINUTE_COUNT_DOWN_OPERATION_TYPE = Symbol('countdown')
 
 class Operation {
   constructor(type) {
@@ -32,6 +33,13 @@ class Operation {
 class PlaybackComplete extends Operation {
   constructor(player) {
     super(PLAYBACK_COMPLETE_TYPE)
+    this.player = player
+  }
+}
+
+class ShicoPlaybackComplete extends Operation {
+  constructor(player) {
+    super(SHICO_PLAYBACK_COMPLETE_TYPE)
     this.player = player
   }
 }
@@ -87,6 +95,7 @@ class AudioStateMachine {
   constructor() {
     this.duration = 0
     this.shicoGroup = null
+    this.shicoPlayer = null
     this.phraseGroups = []
     this.countdownCallback = stub
     this.state = INIT_STATE
@@ -157,7 +166,7 @@ class AudioStateMachine {
   // TODO: This is not a public function. Move below or somehow organize it
   // to make it obvious.
   abrupt() {
-    this.stopAllPhrasePlayback()
+    this.stopAllPlayback()
 
     this.state = ABRUPT_STATE
     this.simultaneousPharsePlaybackStart('abrupt')
@@ -171,7 +180,7 @@ class AudioStateMachine {
       return
     }
 
-    this.stopAllPhrasePlayback()
+    this.stopAllPlayback()
 
     this.state = GIVE_UP_STATE
     this.simultaneousPharsePlaybackStart('giveup')
@@ -188,7 +197,7 @@ class AudioStateMachine {
       return
     }
 
-    this.stopAllPhrasePlayback()
+    this.stopAllPlayback()
 
     if (
       this.state == NORMAL_STATE ||
@@ -208,7 +217,7 @@ class AudioStateMachine {
   }
 
   stop() {
-    this.stopAllPhrasePlayback()
+    this.stopAllPlayback()
     console.log('stop')
     this.state = INIT_STATE
   }
@@ -231,17 +240,51 @@ class AudioStateMachine {
     }
   }
 
+  /**
+   * The callback should return a player given the group.
+   * @callback getPlayerCallback
+   * @param {AudioAssetGroup} group
+   */
+
+  /**
+   * Starts playing a shico voice.
+   * When the playback ends completedShicoPlayback is called.
+   * If there isn't a shico group currently set, then this function is a NOP.
+   * @param {getPlayerCallback} getPlayerCb - Callback applied to the shico
+   * group.
+   */
+  playShico(getPlayerCb) {
+    if (!this.shicoGroup) {
+      return
+    }
+
+    const player = getPlayerCb(this.shicoGroup)
+    player.onplayended = this.completedShicoPlayback.bind(this)
+    this.shicoPlayer = player
+    player.play()
+  }
+
   // This will stop all the players that are playing and will empty the
-  // phrasePlayers array.
-  stopAllPhrasePlayback() {
+  // phrasePlayers array and set shicoPlayer to null.
+  stopAllPlayback() {
     for (const player of this.phrasePlayers) {
       player.stop()
     }
     this.phrasePlayers = []
+    if (this.shicoPlayer) {
+      this.shicoPlayer.stop()
+    }
+    this.shicoPlayer = null
   }
 
   completedPhrasePlayback(player) {
+    findPlayerAndRemove(player, this.phrasePlayers)
     this.processNext(new PlaybackComplete(player))
+  }
+
+  completedShicoPlayback(player) {
+    this.shicoPlayer = null
+    this.processNext(new ShicoPlaybackComplete(player))
   }
 
   startHandler(event) {
@@ -249,7 +292,6 @@ class AudioStateMachine {
       return
     }
 
-    findPlayerAndRemove(event.player, this.phrasePlayers)
     if (this.phrasePlayers.length > 0) {
       // Keep waiting for all players to end.
       return
@@ -263,7 +305,6 @@ class AudioStateMachine {
   }
 
   startFastHandler(event) {
-    findPlayerAndRemove(event.player, this.phrasePlayers)
     if (this.phrasePlayers.length > 0) {
       // Keep waiting for all players to end.
       return
@@ -282,9 +323,9 @@ class AudioStateMachine {
   // Determines which AudioAssetGroup the player belongs too and then starts
   // playing back the next one in the group.
   playNextOf(player, type) {
-    findPlayerAndRemove(player, this.phrasePlayers)
     const group = this.findPhraseGroup(player.assetGroupNumber)
     if (!group) {
+      console.log('Group ' + player.assetGroupNumber + ' has been removed.')
       // The group has been removed while the player was playing.
       // TODO: Maybe this should be an invariance. IOW when a phrase group
       // is removed, maybe it should stop all the players. Reconsider this
@@ -304,11 +345,14 @@ class AudioStateMachine {
     if (event.type == NULL_OPERATION_TYPE) {
       if (this.phrasePlayers.length > 0) {
         console.warn('There should not be any players in this state.')
-        this.stopAllPhrasePlayback()
+        this.stopAllPlayback()
       }
       this.simultaneousPharsePlaybackStart('phrase')
+      this.playShico((group) => group.shico())
     } else if (event.type == PLAYBACK_COMPLETE_TYPE) {
       this.playNextOf(event.player, 'phrase')
+    } else if (event.type == SHICO_PLAYBACK_COMPLETE_TYPE) {
+      this.playShico((group) => group.shico())
     } else if (event.type == MINUTE_COUNT_DOWN_OPERATION_TYPE) {
       if (event.timeRemaining > 0) {
         for (const group of this.phraseGroups) {
@@ -331,11 +375,13 @@ class AudioStateMachine {
       return
     }
 
-    findPlayerAndRemove(event.player, this.phrasePlayers)
     if (this.phrasePlayers.length > 0) {
       // Keep waiting for all players to end.
       return
     }
+
+    // Getting here should force shico voice to halt as well.
+    this.stopAllPlayback()
 
     this.state = LAST_MINUTE_STATE
     this.simultaneousPharsePlaybackStart('lastMinute')
@@ -346,7 +392,6 @@ class AudioStateMachine {
       return
     }
 
-    findPlayerAndRemove(event.player, this.phrasePlayers)
     if (this.phrasePlayers.length > 0) {
       // Keep waiting for all players to end.
       return
@@ -369,7 +414,6 @@ class AudioStateMachine {
 
   giveUpHandler(event) {
     assert(event.type != MINUTE_COUNT_DOWN_OPERATION_TYPE)
-    findPlayerAndRemove(event.player, this.phrasePlayers)
     if (this.phrasePlayers.length > 0) {
       // Keep waiting for all players to end.
       return
@@ -384,20 +428,23 @@ class AudioStateMachine {
     if (event.type == NULL_OPERATION_TYPE) {
       if (this.phrasePlayers.length > 0) {
         console.warn('There should not be any players in this state.')
-        this.stopAllPhrasePlayback()
+        this.stopAllPlayback()
       }
 
       this.simultaneousPharsePlaybackStart('fast')
-      return
+      this.playShico((group) => group.shicoFast())
+    } else if (event.type == SHICO_PLAYBACK_COMPLETE_TYPE) {
+      this.playShico((group) => group.shicoFast())
+    } else if (event.type == PLAYBACK_COMPLETE_TYPE) {
+      this.playNextOf(event.player, 'fast')
+    } else {
+      console.warn('Unrecognized event in fastHander ', event)
     }
-
-    this.playNextOf(event.player, 'fast')
   }
 
   endHandler(event) {
     // TODO: Determine if this really has to wait for anything. The next state
     // is a terminating state so it might not matter.
-    findPlayerAndRemove(event.player, this.phrasePlayers)
     if (this.phrasePlayers.length > 0) {
       return
     }

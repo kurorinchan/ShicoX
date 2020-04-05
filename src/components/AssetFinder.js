@@ -106,7 +106,7 @@ class Player {
     this.onplayendedCallback = null
     this.audio = null
     this.panner = null
-    this.volume = 100
+    this.volume = 0
     this.assetGroup = 0
     this.panValue = 0
   }
@@ -346,6 +346,28 @@ function createAudioContext() {
   return new AudioContext()
 }
 
+/**
+ *
+ * @callback applyToPlayerCallback
+ * @param {Player} player
+ */
+
+/**
+ *
+ * @param {applyToPlayerCallback} applyFunc
+ */
+function forEveryPlayer(playersMapping, applyFunc) {
+  for (const playersSubset of Object.values(playersMapping)) {
+    if (Array.isArray(playersSubset)) {
+      for (const player of playersSubset) {
+        applyFunc(player)
+      }
+    } else {
+      applyFunc(playersSubset)
+    }
+  }
+}
+
 class AudioAssetGroup {
   // TODO: The create function might be replaced by sinon's injection.
   // Also consider moving the file exploration logic out of the constructor
@@ -356,24 +378,28 @@ class AudioAssetGroup {
     this.shicoVolume = INIT_VOLUME
     this.phraseVolume = INIT_VOLUME
 
+    // TODO: These probably sholdn't not be Objects, it's clunky. Change them
+    // to Maps.
     const shicoMapping = exploreShicoDir(this.shicoDir)
     const phraseMapping = exploreVoiceDir(this.voiceDir)
-    // TODO: Keep the two separate. Otherwise volume management gets more complex.
-    this.allPlayers = Object.assign(shicoMapping, phraseMapping)
+    const allPlayers = Object.assign(shicoMapping, phraseMapping)
+    this.shicoPlayers = {}
+    this.shicoPlayers[SHICO_VOICE] = allPlayers[SHICO_VOICE]
+    this.shicoPlayers[SHICO_FAST_VOICE] = allPlayers[SHICO_FAST_VOICE]
+    delete allPlayers[SHICO_VOICE]
+    delete allPlayers[SHICO_FAST_VOICE]
+    this.phrasePlayers = allPlayers
 
     // TODO: Calling a method in ctor is probably not a good idea as it may not
     // be completely setup. Move these non trivial operations into a seprate
     // method.
     const assetGroupNumber = this.assetGroupNumber()
-    for (const playersSubset of Object.values(this.allPlayers)) {
-      if (Array.isArray(playersSubset)) {
-        for (const player of playersSubset) {
-          player.assetGroupNumber = assetGroupNumber
-        }
-      } else {
-        playersSubset.assetGroupNumber = assetGroupNumber
-      }
-    }
+    forEveryPlayer(this.phrasePlayers, function (p) {
+      p.assetGroupNumber = assetGroupNumber
+    })
+    forEveryPlayer(this.shicoPlayers, function (p) {
+      p.assetGroupNumber = assetGroupNumber
+    })
   }
 
   // This may be just used for bookkeeping. Does not affect the functionality.
@@ -394,6 +420,9 @@ class AudioAssetGroup {
   // TODO: Update volume for all players under shiko.
   setShicoVolume(volume) {
     this.shicoVolume = clampVolume(volume)
+    forEveryPlayer(this.shicoPlayers, (p) => {
+      p.setVolume(this.shicoVolume)
+    })
   }
 
   getShicoVolume() {
@@ -403,15 +432,9 @@ class AudioAssetGroup {
   // TODO: Update volume for all players under voice.
   setPharseVolume(volume) {
     this.phraseVolume = clampVolume(volume)
-    for (const playersSubset of Object.values(this.allPlayers)) {
-      if (Array.isArray(playersSubset)) {
-        for (const player of playersSubset) {
-          player.setVolume(this.phraseVolume)
-        }
-      } else {
-        playersSubset.setVolume(this.phraseVolume)
-      }
-    }
+    forEveryPlayer(this.phrasePlayers, (p) => {
+      p.setVolume(this.phraseVolume)
+    })
   }
 
   getPhraseVolume() {
@@ -425,94 +448,105 @@ class AudioAssetGroup {
    * as the values accepted by to StereoPannerNode.
    */
   setPhrasePan(pan) {
-    for (const playersSubset of Object.values(this.allPlayers)) {
-      if (Array.isArray(playersSubset)) {
-        for (const player of playersSubset) {
-          player.pan = pan
-        }
-      } else {
-        playersSubset.pan = pan
-      }
-    }
+    forEveryPlayer(this.phrasePlayers, (p) => {
+      p.pan = pan
+    })
   }
 
-  // TODO: Players returned from these functions should be "prepared".
-  start() {
-    return pickRandomPlayer(this.allPlayers[START_VOICE])
-  }
-
-  startFast() {
-    return pickRandomPlayer(this.allPlayers[START_FAST_VOICE])
+  setShicoPan(pan) {
+    forEveryPlayer(this.shicoPlayers, (p) => {
+      p.pan = pan
+    })
   }
 
   shico() {
-    return pickRandomPlayer(this.allPlayers[SHICO_VOICE])
-  }
-
-  phrase() {
-    return pickRandomPlayer(this.allPlayers[PHRASE_VOICE])
-  }
-
-  silence() {
-    return pickRandomPlayer(this.allPlayers[SILENCE_VOICE])
-  }
-
-  perMinuteNotification(minutesRemaining) {
-    if (minutesRemaining == 5 && FIVE_MIN_COUNT_DOWN_VOIDE in this.allPlayers) {
-      return preparePlayer(this.allPlayers[FIVE_MIN_COUNT_DOWN_VOIDE])
-    }
-    if (minutesRemaining == 4 && FOUR_MIN_COUNT_DOWN_VOIDE in this.allPlayers) {
-      return preparePlayer(this.allPlayers[FOUR_MIN_COUNT_DOWN_VOIDE])
-    }
-    if (
-      minutesRemaining == 3 &&
-      THREE_MIN_COUNT_DOWN_VOIDE in this.allPlayers
-    ) {
-      return preparePlayer(this.allPlayers[THREE_MIN_COUNT_DOWN_VOIDE])
-    }
-    if (minutesRemaining == 2 && TWO_MIN_COUNT_DOWN_VOIDE in this.allPlayers) {
-      return preparePlayer(this.allPlayers[TWO_MIN_COUNT_DOWN_VOIDE])
-    }
-    if (minutesRemaining == 1 && ONE_MIN_COUNT_DOWN_VOIDE in this.allPlayers) {
-      return preparePlayer(this.allPlayers[ONE_MIN_COUNT_DOWN_VOIDE])
-    }
-
-    // If there isn't any >5 min countdowns, then play at random.
-    return pickRandomPlayer(this.allPlayers[COUNT_DOWN_VOICE])
-  }
-
-  abrupt() {
-    return pickRandomPlayer(this.allPlayers[ABRUPT_VOICE])
-  }
-
-  giveup() {
-    return pickRandomPlayer(this.allPlayers[GIVE_UP_VOICE])
-  }
-
-  lastMinute() {
-    return pickRandomPlayer(this.allPlayers[LAST_MINUTE_VOICE])
-  }
-
-  fast() {
-    return pickRandomPlayer(this.allPlayers[FAST_VOICE])
+    return pickRandomPlayer(this.shicoPlayers[SHICO_VOICE])
   }
 
   shicoFast() {
-    return pickRandomPlayer(this.allPlayers[SHICO_FAST_VOICE])
+    return pickRandomPlayer(this.shicoPlayers[SHICO_FAST_VOICE])
+  }
+
+  start() {
+    return pickRandomPlayer(this.phrasePlayers[START_VOICE])
+  }
+
+  startFast() {
+    return pickRandomPlayer(this.phrasePlayers[START_FAST_VOICE])
+  }
+
+  phrase() {
+    return pickRandomPlayer(this.phrasePlayers[PHRASE_VOICE])
+  }
+
+  silence() {
+    return pickRandomPlayer(this.phrasePlayers[SILENCE_VOICE])
+  }
+
+  perMinuteNotification(minutesRemaining) {
+    if (
+      minutesRemaining == 5 &&
+      FIVE_MIN_COUNT_DOWN_VOIDE in this.phrasePlayers
+    ) {
+      return preparePlayer(this.phrasePlayers[FIVE_MIN_COUNT_DOWN_VOIDE])
+    }
+    if (
+      minutesRemaining == 4 &&
+      FOUR_MIN_COUNT_DOWN_VOIDE in this.phrasePlayers
+    ) {
+      return preparePlayer(this.phrasePlayers[FOUR_MIN_COUNT_DOWN_VOIDE])
+    }
+    if (
+      minutesRemaining == 3 &&
+      THREE_MIN_COUNT_DOWN_VOIDE in this.phrasePlayers
+    ) {
+      return preparePlayer(this.phrasePlayers[THREE_MIN_COUNT_DOWN_VOIDE])
+    }
+    if (
+      minutesRemaining == 2 &&
+      TWO_MIN_COUNT_DOWN_VOIDE in this.phrasePlayers
+    ) {
+      return preparePlayer(this.phrasePlayers[TWO_MIN_COUNT_DOWN_VOIDE])
+    }
+    if (
+      minutesRemaining == 1 &&
+      ONE_MIN_COUNT_DOWN_VOIDE in this.phrasePlayers
+    ) {
+      return preparePlayer(this.phrasePlayers[ONE_MIN_COUNT_DOWN_VOIDE])
+    }
+
+    // If there isn't any >5 min countdowns, then play at random.
+    return pickRandomPlayer(this.phrasePlayers[COUNT_DOWN_VOICE])
+  }
+
+  abrupt() {
+    return pickRandomPlayer(this.phrasePlayers[ABRUPT_VOICE])
+  }
+
+  giveup() {
+    return pickRandomPlayer(this.phrasePlayers[GIVE_UP_VOICE])
+  }
+
+  lastMinute() {
+    return pickRandomPlayer(this.phrasePlayers[LAST_MINUTE_VOICE])
+  }
+
+  fast() {
+    return pickRandomPlayer(this.phrasePlayers[FAST_VOICE])
   }
 
   countDown() {
-    const player = this.allPlayers[SINGLE_FILE_COUNT_DOWN_VOICE][0]
+    const player = this.phrasePlayers[SINGLE_FILE_COUNT_DOWN_VOICE][0]
     player.prepare()
     return player
   }
 
   end() {
-    return pickRandomPlayer(this.allPlayers[END_VOICE])
+    return pickRandomPlayer(this.phrasePlayers[END_VOICE])
   }
 
   exit() {
-    return pickRandomPlayer(this.allPlayers[EXIT_VOICE])
+    return pickRandomPlayer(this.phrasePlayers[EXIT_VOICE])
   }
 }
 

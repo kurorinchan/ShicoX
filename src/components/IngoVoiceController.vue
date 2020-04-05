@@ -32,19 +32,6 @@
         <option value="0"></option>
       </datalist>
     </div>
-    <div>
-      <input type="radio" value="left" :checked="pan === 'left'" v-on:change="$emit('pan-left')" />
-      <label>左</label>
-      <input
-        type="radio"
-        value="center"
-        :checked="pan === 'center'"
-        v-on:change="$emit('pan-center')"
-      />
-      <label>中央</label>
-      <input type="radio" value="right" :checked="pan === 'right'" v-on:change="$emit('pan-right')" />
-      <label>右</label>
-    </div>
   </div>
 </template>
 

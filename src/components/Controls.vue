@@ -11,8 +11,10 @@
     />
     <ShicoVoiceController
       :volume="shicoVolume"
+      :trackNumber="shicoTrackNumber"
       @volume-up="shicoVolumeUp"
       @volume-down="shicoVolumeDown"
+      @pan-change="shicoPanChange"
     />
     <IngoVoiceController
       v-for="item in ingoVoices"
@@ -70,6 +72,7 @@ export default {
     const finder = new af.AssetFinder(audioResoucePath)
     const groups = finder.findAudioAssetGroups()
     const ingoVoices = []
+    const shicoVoices = []
     const stateMachine = new asm.AudioStateMachine()
     for (const [index, group] of groups.entries()) {
       group.setPharseVolume(INIT_VOLUME)
@@ -82,17 +85,28 @@ export default {
       ingoVoices.push({
         volume: group.getPhraseVolume(),
         checked: true,
-        pan: 'center',
         trackNumber: group.assetGroupNumber(),
         group
       })
+      shicoVoices.push({
+        selected: false,
+        trackNumber: group.assetGroupNumber(),
+        group
+      })
+    }
+
+    if (groups.length > 0) {
+      const firstGroup = groups[0]
+      stateMachine.setShicoGroup(firstGroup)
+      shicoVoices[0].selected = true
     }
 
     return {
       stateMachine,
       remainingTime: 10 * MIN_TO_SECONDS,
       pan: 'left',
-      ingoVoices
+      ingoVoices,
+      shicoVoices
     }
   },
   computed: {
@@ -106,6 +120,12 @@ export default {
     },
     shicoVolume: function() {
       return 100
+    },
+    shicoTrackNumber: function() {
+      const voices = this.shicoVoices.find(function(voices) {
+        return voices.selected
+      })
+      return voices.trackNumber
     }
   },
   methods: {
@@ -124,6 +144,12 @@ export default {
     },
     shicoVolumeUp: function() {},
     shicoVolumeDown: function() {},
+    shicoPanChange: function(trackNumber, value) {
+      const voices = this.shicoVoices.find(function(voices) {
+        return voices.trackNumber == trackNumber
+      })
+      voices.group.setShicoPan(value)
+    },
     ingoVolumeUp: function(trackNumber) {
       // TODO: Using trackNumber to find the entry in the array is not scalable.
       // Reconsider this if there is a chance this gets large.
