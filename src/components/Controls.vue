@@ -13,17 +13,17 @@
       :volume="shicoVolume"
       @volume-up="shicoVolumeUp"
       @volume-down="shicoVolumeDown"
-      :pan="pan"
     />
     <IngoVoiceController
       v-for="item in ingoVoices"
       :key="item.trackNumber"
       :volume="item.volume"
-      :pan="item.pan"
+      v-model="item.pan"
       :track-number="item.trackNumber"
       :checked="item.checked"
       @volume-up="ingoVolumeUp"
       @volume-down="ingoVolumeDown"
+      @pan-change="ingoPanChange"
     />
   </div>
 </template>
@@ -67,7 +67,6 @@ export default {
     IngoVoiceController
   },
   data() {
-    const appPath = 'file://' + audioResoucePath
     const finder = new af.AssetFinder(audioResoucePath)
     const groups = finder.findAudioAssetGroups()
     const ingoVoices = []
@@ -92,7 +91,6 @@ export default {
     return {
       stateMachine,
       remainingTime: 10 * MIN_TO_SECONDS,
-      appPath: appPath,
       pan: 'left',
       ingoVoices
     }
@@ -133,7 +131,7 @@ export default {
         return voices.trackNumber == trackNumber
       })
       const group = voices.group
-      group.setPharseVolume(group.getPhraseVolume() + 1)
+      group.setPharseVolume(group.getPhraseVolume() + 10)
       voices.volume = group.getPhraseVolume()
       console.log(voices.volume)
     },
@@ -142,9 +140,15 @@ export default {
         return voices.trackNumber == trackNumber
       })
       const group = voices.group
-      group.setPharseVolume(group.getPhraseVolume() - 1)
+      group.setPharseVolume(group.getPhraseVolume() - 10)
       voices.volume = group.getPhraseVolume()
       console.log(voices.volume)
+    },
+    ingoPanChange: function(trackNumber, value) {
+      const voices = this.ingoVoices.find(function(voices) {
+        return voices.trackNumber == trackNumber
+      })
+      voices.group.setPhrasePan(value)
     },
     giveup: function() {
       this.stateMachine.giveUp()

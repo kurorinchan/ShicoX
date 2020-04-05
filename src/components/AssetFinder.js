@@ -105,8 +105,10 @@ class Player {
     this.path = audioFilePath
     this.onplayendedCallback = null
     this.audio = null
+    this.panner = null
     this.volume = 100
     this.assetGroup = 0
+    this.panValue = 0
   }
 
   get assetGroupNumber() {
@@ -117,10 +119,27 @@ class Player {
     this.assetGroup = value
   }
 
+  /**
+   * @param {number} panValue
+   */
+  set pan(panValue) {
+    this.panValue = panValue
+    if (this.panner) {
+      this.panner.pan.value = this.panValue
+    }
+  }
+
   prepare() {
     this.audio = createAudio(this.path)
     this.audio.volume = this.volume
     this.audio.onended = this.onended.bind(this)
+    const context = createAudioContext()
+    const source = context.createMediaElementSource(this.audio)
+    const panner = context.createStereoPanner()
+    source.connect(panner)
+    panner.connect(context.destination)
+    this.panner = panner
+    this.panner.pan.value = this.panValue
   }
 
   // Set a callback for when the playback ends.
@@ -322,6 +341,11 @@ function createAudio(path) {
   return new Audio('file://' + path)
 }
 
+// This is also overwritten for testing.
+function createAudioContext() {
+  return new AudioContext()
+}
+
 class AudioAssetGroup {
   // TODO: The create function might be replaced by sinon's injection.
   // Also consider moving the file exploration logic out of the constructor
@@ -392,6 +416,24 @@ class AudioAssetGroup {
 
   getPhraseVolume() {
     return this.phraseVolume
+  }
+
+  /**
+   * @param {Number} pan
+   * The value must be within [-1, 1] where -1 is all the way to the left,
+   * 1 is all the way to the right, and 0 is in the center. This is the same
+   * as the values accepted by to StereoPannerNode.
+   */
+  setPhrasePan(pan) {
+    for (const playersSubset of Object.values(this.allPlayers)) {
+      if (Array.isArray(playersSubset)) {
+        for (const player of playersSubset) {
+          player.pan = pan
+        }
+      } else {
+        playersSubset.pan = pan
+      }
+    }
   }
 
   // TODO: Players returned from these functions should be "prepared".

@@ -10,9 +10,36 @@ function fakeAudioCreateFunction() {
   return {}
 }
 
+class FakeAudioParam {
+  set value(v) {}
+}
+
+class FakePanner {
+  get pan() {
+    return new FakeAudioParam()
+  }
+  connect() {}
+}
+
+class FakeAudioContext {
+  createMediaElementSource() {
+    return {
+      connect: function () {},
+    }
+  }
+  createStereoPanner() {
+    return new FakePanner()
+  }
+}
+
+function fakeAudioContextCreateFunction() {
+  return new FakeAudioContext()
+}
+
 // Fake out creatAudio() function in the module. The module should not modify
 // or delete the function.
 audioasset.__set__('createAudio', fakeAudioCreateFunction)
+audioasset.__set__('createAudioContext', fakeAudioContextCreateFunction)
 
 describe('AudioAsset', function () {
   before(function () {
