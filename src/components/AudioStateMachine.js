@@ -153,12 +153,14 @@ class AudioStateMachine {
       this.state = FAST_STATE
       return
     }
+    this.stopAllPlayback()
 
     this.state = START_STATE
     this.simultaneousPharsePlaybackStart('start')
   }
 
   playFast() {
+    this.stopAllPlayback()
     this.state = START_FAST_STATE
     this.simultaneousPharsePlaybackStart('startFast')
   }
@@ -225,6 +227,7 @@ class AudioStateMachine {
   // Non-public functions.
 
   simultaneousPharsePlaybackStart(type) {
+    assert(this.phrasePlayers.length == 0)
     // All players are put in this array first before playback, since
     // different files may take variable amount of time to load.
     // When they are all ready, they are played all at once.
