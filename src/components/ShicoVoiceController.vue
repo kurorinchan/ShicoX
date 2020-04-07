@@ -2,16 +2,25 @@
   <div>
     Shico Voice
     <div>Selected track {{trackNumber}}</div>
-    <div id="shicovoicecontroller">
-      <input type="button" name="volume-up" value="U" v-on:click="$emit('volume-up')" />
-      <label>{{ volume }}</label>
-      <input type="button" numa="volume-down" value="D" v-on:click="$emit('volume-down')" />
+    <div>
+      <label>
+        Volume:
+        <span class="labelnumber">{{ volume }}</span>
+      </label>
+
+      <input type="button" name="volume-up" value="U" v-on:click="$emit('volume-up', trackNumber)" />
+      <input
+        type="button"
+        name="volume-down"
+        value="D"
+        v-on:click="$emit('volume-down', trackNumber)"
+      />
     </div>
     <div>
       <div>
         Pan L
-        <span class="pan">{{panLeft}}</span>:
-        <span class="pan">{{panRight}}</span>R
+        <span class="labelnumber">{{panLeft}}</span>:
+        <span class="labelnumber">{{panRight}}</span>R
       </div>
       <input
         type="range"
@@ -50,3 +59,10 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.labelnumber {
+  display: inline-block;
+  width: 4ch;
+}
+</style>

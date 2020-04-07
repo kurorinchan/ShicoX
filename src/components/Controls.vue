@@ -3,6 +3,7 @@
     <CountDownTimer @new-duration="displayedRemainingTime = $event" />
     あと{{ displayedRemainingTime }}分
     <ActionButtons
+      class="actionbutton"
       @start="start"
       @stop="stop"
       @start-fast="startFast"
@@ -10,6 +11,7 @@
       @last="last"
     />
     <ShicoVoiceController
+      class="shicovoicecontroller"
       :volume="shicoVolume"
       :trackNumber="shicoTrackNumber"
       @volume-up="shicoVolumeUp"
@@ -17,12 +19,14 @@
       @pan-change="shicoPanChange"
     />
     <IngoVoiceController
+      class="ingovoicecontroller"
       v-for="item in ingoVoices"
       :key="item.trackNumber"
       :volume="item.volume"
-      v-model="item.pan"
+      :pan="item.pan"
       :track-number="item.trackNumber"
       :checked="item.checked"
+      @check-change="ingoCheckChange"
       @volume-up="ingoVolumeUp"
       @volume-down="ingoVolumeDown"
       @pan-change="ingoPanChange"
@@ -95,10 +99,13 @@ export default {
       })
     }
 
+    let shicoVolume = SHICO_INIT_VOLUME
+
     if (groups.length > 0) {
       const firstGroup = groups[0]
       stateMachine.setShicoGroup(firstGroup)
       shicoVoices[0].selected = true
+      shicoVolume = firstGroup.getShicoVolume()
     }
 
     return {
@@ -106,7 +113,8 @@ export default {
       remainingTime: 10 * MIN_TO_SECONDS,
       pan: 'left',
       ingoVoices,
-      shicoVoices
+      shicoVoices,
+      shicoVolume
     }
   },
   computed: {
@@ -117,9 +125,6 @@ export default {
       set: function(minutes) {
         this.remainingTime = minutes * MIN_TO_SECONDS
       }
-    },
-    shicoVolume: function() {
-      return 100
     },
     shicoTrackNumber: function() {
       const voices = this.shicoVoices.find(function(voices) {
@@ -142,13 +147,39 @@ export default {
     startFast: function() {
       this.stateMachine.playFast()
     },
-    shicoVolumeUp: function() {},
-    shicoVolumeDown: function() {},
+    shicoVolumeUp: function(trackNumber) {
+      const voices = this.shicoVoices.find(function(voices) {
+        return voices.trackNumber == trackNumber
+      })
+      const group = voices.group
+      group.setShicoVolume(this.shicoVolume + 10)
+      this.shicoVolume = group.getShicoVolume()
+    },
+    shicoVolumeDown: function(trackNumber) {
+      const voices = this.shicoVoices.find(function(voices) {
+        return voices.trackNumber == trackNumber
+      })
+      const group = voices.group
+      group.setShicoVolume(this.shicoVolume - 10)
+      this.shicoVolume = group.getShicoVolume()
+    },
     shicoPanChange: function(trackNumber, value) {
       const voices = this.shicoVoices.find(function(voices) {
         return voices.trackNumber == trackNumber
       })
       voices.group.setShicoPan(value)
+    },
+    ingoCheckChange: function(trackNumber, checked) {
+      const voices = this.ingoVoices.find(function(voices) {
+        return voices.trackNumber == trackNumber
+      })
+      voices.checked = checked
+
+      if (!checked) {
+        this.stateMachine.removePhraseGroup(voices.group)
+        return
+      }
+      this.stateMachine.addPhraseGroup(voices.group)
     },
     ingoVolumeUp: function(trackNumber) {
       // TODO: Using trackNumber to find the entry in the array is not scalable.
@@ -186,3 +217,17 @@ export default {
   }
 }
 </script>
+
+<style>
+.actionbutton {
+  border: solid;
+}
+.shicovoicecontroller {
+  display: inline-block;
+  border: solid;
+}
+.ingovoicecontroller {
+  display: inline-block;
+  border: solid;
+}
+</style>

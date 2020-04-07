@@ -776,6 +776,116 @@ describe('AudioStatemachine', function () {
       this.groupMock2.verify()
     })
 
+    it('remove a group', function () {
+      this.groupMock1.expects('startFast').once().returns(this.player1)
+      this.groupMock2.expects('startFast').once().returns(this.player2)
+
+      const playerMock = sinon.mock(this.player1)
+
+      this.machine.addPhraseGroup(this.group1)
+      this.machine.addPhraseGroup(this.group2)
+      this.machine.playFast()
+
+      // Expect the removal to stop the player immediately.
+      playerMock.expects('stop').once()
+
+      this.machine.removePhraseGroup(this.group1)
+      this.groupMock1.verify()
+      this.groupMock2.verify()
+      playerMock.verify()
+    })
+
+    // When a phrase group is added back in NORMAL STATE, start playing it back
+    // immediately.
+    it('remove and then add it back in normal', function () {
+      this.groupMock1.expects('start').once().returns(this.player1)
+      this.groupMock2.expects('start').once().returns(this.player2)
+
+      const playerMock = sinon.mock(this.player1)
+      playerMock.expects('stop').once()
+
+      this.machine.addPhraseGroup(this.group1)
+      this.machine.addPhraseGroup(this.group2)
+      this.machine.play(20)
+
+      this.machine.removePhraseGroup(this.group1)
+
+      this.groupMock2.expects('phrase').atLeast(1).returns(this.player2)
+
+      // 'start' for the second group finished. Starts playing 'phrase'.
+      this.player2.fireCallback()
+
+      this.groupMock1.expects('phrase').atLeast(1).returns(this.player1)
+      playerMock.expects('play').once()
+
+      // Now add back group1 and make sure it starts playing 'pharse' as well.
+      this.machine.addPhraseGroup(this.group1)
+      this.groupMock1.verify()
+      this.groupMock2.verify()
+      playerMock.verify()
+    })
+
+    // This should not play 'start' again for the group that is added back.
+    // Instead it should start playing with the other group from the next state,
+    // i.e. from NORMAL state.
+    it('remove and then add it back in start', function () {
+      // Note that group1's "start" should only be called once. This expectation
+      // covers the case where it shouldn't be called again when it's added
+      // back.
+      this.groupMock1.expects('start').once().returns(this.player1)
+      this.groupMock2.expects('start').once().returns(this.player2)
+
+      const playerMock = sinon.mock(this.player1)
+      playerMock.expects('stop').once()
+
+      this.machine.addPhraseGroup(this.group1)
+      this.machine.addPhraseGroup(this.group2)
+      this.machine.play(20)
+
+      this.machine.removePhraseGroup(this.group1)
+      this.machine.addPhraseGroup(this.group1)
+
+      this.groupMock1.expects('phrase').once().returns(this.player1)
+      this.groupMock2.expects('phrase').once().returns(this.player2)
+
+      // 'start' for the second group finished. Starts playing 'phrase'.
+      this.player2.fireCallback()
+
+      // Now add back group1 and make sure it starts playing 'pharse' as well.
+      this.groupMock1.verify()
+      this.groupMock2.verify()
+    })
+
+    // When a phrase group is added back in FAST STATE, start playing it back
+    // immediately.
+    it('remove and then add it back in fast', function () {
+      this.groupMock1.expects('startFast').once().returns(this.player1)
+      this.groupMock2.expects('startFast').once().returns(this.player2)
+
+      const playerMock = sinon.mock(this.player1)
+      playerMock.expects('stop').once()
+
+      this.machine.addPhraseGroup(this.group1)
+      this.machine.addPhraseGroup(this.group2)
+      this.machine.playFast()
+
+      this.machine.removePhraseGroup(this.group1)
+
+      this.groupMock2.expects('fast').atLeast(1).returns(this.player2)
+
+      // 'startFast' for the second group finished. Starts playing 'fast'.
+      this.player2.fireCallback()
+
+      this.groupMock1.expects('fast').atLeast(1).returns(this.player1)
+      playerMock.expects('play').once()
+
+      // Now add back group1 and make sure it starts playing 'fast' as well.
+      this.machine.addPhraseGroup(this.group1)
+      this.groupMock1.verify()
+      this.groupMock2.verify()
+      playerMock.verify()
+    })
+
     describe('with shico', function () {
       it('start fast stay in fast', function () {
         const fakeShicoPlayer = new FakePlayer('shico')

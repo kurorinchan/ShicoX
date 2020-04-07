@@ -154,6 +154,10 @@ class Player {
       this.onplayendedCallback(this)
       this.onplayendedCallback = null
     }
+    // https://html.spec.whatwg.org/multipage/media.html#best-practices-for-authors-using-media-elements
+    // In order to release resources, it is best to set the src to null.
+    this.audio.src = null
+    this.audio = null
   }
 
   play() {

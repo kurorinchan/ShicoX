@@ -1,7 +1,11 @@
 <template>
   <div id="ingovoicecontroller">
     <div>
-      <input type="checkbox" :checked="checked" />
+      <input
+        type="checkbox"
+        :checked="checked"
+        v-on:change="$emit('check-change', trackNumber, !checked)"
+      />
       <label>台詞{{trackNumber}}</label>
     </div>
     <div>

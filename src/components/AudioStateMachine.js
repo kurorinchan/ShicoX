@@ -23,6 +23,7 @@ const NULL_OPERATION_TYPE = Symbol('nullop')
 const PLAYBACK_COMPLETE_TYPE = Symbol('phrase playback complete')
 const SHICO_PLAYBACK_COMPLETE_TYPE = Symbol('shico playback complete')
 const MINUTE_COUNT_DOWN_OPERATION_TYPE = Symbol('countdown')
+const ADDED_GROUP_EVENT = Symbol('added-group-event')
 
 class Operation {
   constructor(type) {
@@ -48,6 +49,13 @@ class MinuteCountDownEvent extends Operation {
   constructor(timeRemaining) {
     super(MINUTE_COUNT_DOWN_OPERATION_TYPE)
     this.timeRemaining = timeRemaining
+  }
+}
+
+class AddedGroupEvent extends Operation {
+  constructor(group) {
+    super(ADDED_GROUP_EVENT)
+    this.group = group
   }
 }
 
@@ -99,6 +107,7 @@ class AudioStateMachine {
     this.phraseGroups = []
     this.countdownCallback = stub
     this.state = INIT_STATE
+    this.timerId = null
 
     // Currently playing players. Once a playback finishes, it is removed from
     // the list.
@@ -114,16 +123,47 @@ class AudioStateMachine {
 
   addPhraseGroup(group) {
     this.phraseGroups.push(group)
+    this.processNext(new AddedGroupEvent(group))
   }
 
-  removePhraseGroup(group) {}
+  /**
+   *
+   * @param {AudioAssetGroup} group
+   */
+  removePhraseGroup(group) {
+    const assetGroupNumber = group.assetGroupNumber()
+    const groupIndex = this.phraseGroups.findIndex(function (g) {
+      return g.assetGroupNumber() == assetGroupNumber
+    })
+    if (groupIndex >= 0) {
+      this.phraseGroups.splice(groupIndex, 1)
+    }
+
+    // TODO: This may be dedupable with findPlayerAndRemove().
+    const playerIndex = this.phrasePlayers.findIndex(function (p) {
+      return p.assetGroupNumber == assetGroupNumber
+    })
+    if (playerIndex == -1) {
+      return
+    }
+    this.phrasePlayers[playerIndex].stop()
+    this.phrasePlayers.splice(playerIndex, 1)
+  }
 
   // Notifies the callback the time remaining in minutes in "normal" mode.
   set oncountdown(callback) {
     this.countdownCallback = callback
   }
 
+  clearTimer() {
+    if (this.timerId) {
+      clearTimeout(this.timerId)
+    }
+    this.timerId = null
+  }
+
   timerFired(event) {
+    this.timerId = null
     if (this.state != NORMAL_STATE) {
       // Timers are only used in NORMAL_STATE. When in other states, don't
       // mess with other states. Assume that it is in a state where the
@@ -137,7 +177,7 @@ class AudioStateMachine {
     this.countdownCallback(this.duration)
     this.processNext(new MinuteCountDownEvent(this.duration))
     if (this.duration > 0) {
-      setTimeout(this.timerFired.bind(this), ONE_MINUTE)
+      this.timerId = setTimeout(this.timerFired.bind(this), ONE_MINUTE)
     }
   }
 
@@ -168,6 +208,7 @@ class AudioStateMachine {
   // TODO: This is not a public function. Move below or somehow organize it
   // to make it obvious.
   abrupt() {
+    this.clearTimer()
     this.stopAllPlayback()
 
     this.state = ABRUPT_STATE
@@ -182,6 +223,7 @@ class AudioStateMachine {
       return
     }
 
+    this.clearTimer()
     this.stopAllPlayback()
 
     this.state = GIVE_UP_STATE
@@ -291,6 +333,7 @@ class AudioStateMachine {
   }
 
   startHandler(event) {
+    this.timerId = null
     if (event.type != PLAYBACK_COMPLETE_TYPE) {
       return
     }
@@ -302,7 +345,7 @@ class AudioStateMachine {
 
     this.state = NORMAL_STATE
     if (this.duration > 0) {
-      setTimeout(this.timerFired.bind(this), ONE_MINUTE)
+      this.timerId = setTimeout(this.timerFired.bind(this), ONE_MINUTE)
     }
     this.processNext(new Operation(NULL_OPERATION_TYPE))
   }
@@ -325,10 +368,10 @@ class AudioStateMachine {
 
   // Determines which AudioAssetGroup the player belongs too and then starts
   // playing back the next one in the group.
-  playNextOf(player, type) {
-    const group = this.findPhraseGroup(player.assetGroupNumber)
+  playNextOf(assetGroupNumber, type) {
+    const group = this.findPhraseGroup(assetGroupNumber)
     if (!group) {
-      console.log('Group ' + player.assetGroupNumber + ' has been removed.')
+      console.log('Group ' + assetGroupNumber + ' has been removed.')
       // The group has been removed while the player was playing.
       // TODO: Maybe this should be an invariance. IOW when a phrase group
       // is removed, maybe it should stop all the players. Reconsider this
@@ -353,9 +396,11 @@ class AudioStateMachine {
       this.simultaneousPharsePlaybackStart('phrase')
       this.playShico((group) => group.shico())
     } else if (event.type == PLAYBACK_COMPLETE_TYPE) {
-      this.playNextOf(event.player, 'phrase')
+      this.playNextOf(event.player.assetGroupNumber, 'phrase')
     } else if (event.type == SHICO_PLAYBACK_COMPLETE_TYPE) {
       this.playShico((group) => group.shico())
+    } else if (event.type == ADDED_GROUP_EVENT) {
+      this.playNextOf(event.group.assetGroupNumber(), 'phrase')
     } else if (event.type == MINUTE_COUNT_DOWN_OPERATION_TYPE) {
       if (event.timeRemaining > 0) {
         for (const group of this.phraseGroups) {
@@ -439,7 +484,9 @@ class AudioStateMachine {
     } else if (event.type == SHICO_PLAYBACK_COMPLETE_TYPE) {
       this.playShico((group) => group.shicoFast())
     } else if (event.type == PLAYBACK_COMPLETE_TYPE) {
-      this.playNextOf(event.player, 'fast')
+      this.playNextOf(event.player.assetGroupNumber, 'fast')
+    } else if (event.type == ADDED_GROUP_EVENT) {
+      this.playNextOf(event.group.assetGroupNumber(), 'fast')
     } else {
       console.warn('Unrecognized event in fastHander ', event)
     }
