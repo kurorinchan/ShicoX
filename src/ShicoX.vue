@@ -1,6 +1,5 @@
 <template>
   <div id="shicoapp">
-    <p>{{ path }}</p>
     <Controls />
   </div>
 </template>
@@ -14,9 +13,7 @@ export default {
     Controls
   },
   data() {
-    return {
-      path: process.env.PORTABLE_EXECUTABLE_DIR
-    }
+    return {}
   }
 }
 </script>
@@ -26,9 +23,7 @@ export default {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  /* color: #2c3e50; */
-  margin-top: 60px;
+  /* margin-top: 60px; */
   width: 600px;
   height: 600px;
 }

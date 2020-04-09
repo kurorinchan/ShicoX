@@ -1,47 +1,27 @@
 <template>
   <div id="ingovoicecontroller">
-    <div>
+    <div class="unselectable-text tracknumber">台詞{{trackNumber}}</div>
+    <div id="playcheck">
+      <label for="playcheckbox" class="unselectable-text">Play</label>
       <input
+        name="playcheckbox"
         type="checkbox"
         :checked="checked"
         v-on:change="$emit('check-change', trackNumber, !checked)"
       />
-      <label>台詞{{trackNumber}}</label>
     </div>
-    <div>
-      <label>Volume: {{ volume }}</label>
-      <input type="button" name="volume-up" value="U" v-on:click="$emit('volume-up', trackNumber)" />
-      <input
-        type="button"
-        name="volume-down"
-        value="D"
-        v-on:click="$emit('volume-down', trackNumber)"
-      />
-    </div>
-    <div>
-      <div>
-        Pan L
-        <span class="pan">{{panLeft}}</span>:
-        <span class="pan">{{panRight}}</span>R
-      </div>
-      <input
-        type="range"
-        v-model="panValue"
-        min="-50"
-        max="50"
-        v-on:input="$emit('pan-change', trackNumber, $event.target.value / 50)"
-        list="my-detents"
-      />
-      <datalist id="my-detents">
-        <option value="0"></option>
-      </datalist>
-    </div>
+    <Volume @volume-change="$emit('volume-change', trackNumber, $event)" />
+    <Pan @pan-change="$emit('pan-change', trackNumber, $event)" />
   </div>
 </template>
 
 <script>
+import Pan from './Pan.vue'
+import Volume from './Volume.vue'
+
 export default {
   name: 'IngoVoiceController',
+  components: { Pan, Volume },
   props: ['volume', 'pan', 'trackNumber', 'checked'],
   data() {
     return {
@@ -60,8 +40,29 @@ export default {
 </script>
 
 <style scoped>
-.pan {
-  display: inline-block;
-  width: 4ch;
+#ingovoicecontroller {
+  display: grid;
+  grid-template-rows: 1fr 1fr 1fr 1fr;
+  grid-template-columns: 1fr;
+  row-gap: 0px;
+}
+
+/* This layout should be shared with other components */
+#playcheck {
+  display: grid;
+  grid-template-rows: 1fr;
+  grid-template-columns: 5ch 3ch 1fr 3ch;
+}
+
+.tracknumber {
+  text-decoration: underline;
+}
+
+.unselectable-text {
+  user-select: none;
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  -o-user-select: none;
 }
 </style>

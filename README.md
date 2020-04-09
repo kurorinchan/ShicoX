@@ -1,4 +1,4 @@
-# shicox
+# ShicoX
 
 ## Project setup
 
@@ -24,6 +24,12 @@ yarn electron:serve
 yarn build
 ```
 
+### Compiles and builds the app for production
+
+```
+yarn electron:build
+```
+
 ### Lints and fixes files
 
 ```
@@ -36,7 +42,7 @@ See [Configuration Reference](https://cli.vuejs.org/config/).
 
 ## Testing
 
-If using VSCode add something like the following
+If using VSCode add something like the following to `launch.json`
 
 ```json
 ({

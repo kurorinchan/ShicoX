@@ -1,7 +1,7 @@
 <template>
   <div id="controls">
-    <CountDownTimer @new-duration="displayedRemainingTime = $event" />
-    あと{{ displayedRemainingTime }}分
+    <CountDownTimer id="countdowntimer" @new-duration="displayedRemainingTime = $event" />
+    <div id="remainingtime">あと{{ displayedRemainingTime }}分</div>
     <ActionButtons
       class="actionbutton"
       @start="start"
@@ -10,27 +10,35 @@
       @giveup="giveup"
       @last="last"
     />
-    <ShicoVoiceController
-      class="shicovoicecontroller"
-      :volume="shicoVolume"
-      :trackNumber="shicoTrackNumber"
-      @volume-up="shicoVolumeUp"
-      @volume-down="shicoVolumeDown"
-      @pan-change="shicoPanChange"
-    />
-    <IngoVoiceController
-      class="ingovoicecontroller"
-      v-for="item in ingoVoices"
-      :key="item.trackNumber"
-      :volume="item.volume"
-      :pan="item.pan"
-      :track-number="item.trackNumber"
-      :checked="item.checked"
-      @check-change="ingoCheckChange"
-      @volume-up="ingoVolumeUp"
-      @volume-down="ingoVolumeDown"
-      @pan-change="ingoPanChange"
-    />
+    <div id="voicecontrollers">
+      <div id="shicovoicecontroller">
+        <div class="voice-category">シコシコボイス</div>
+        <ShicoVoiceController
+          class="voicecontroller"
+          :volume="shicoVolume"
+          :trackNumber="shicoTrackNumber"
+          @volume-change="shicoVolumeChange"
+          @pan-change="shicoPanChange"
+        />
+      </div>
+      <div id="ingovoices">
+        <div class="voice-category">淫語ボイス</div>
+        <div id="ingo-voice-controllers">
+          <IngoVoiceController
+            class="voicecontroller"
+            v-for="item in ingoVoices"
+            :key="item.trackNumber"
+            :volume="item.volume"
+            :pan="item.pan"
+            :track-number="item.trackNumber"
+            :checked="item.checked"
+            @volume-change="ingoVolumeChange"
+            @check-change="ingoCheckChange"
+            @pan-change="ingoPanChange"
+          />
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -147,20 +155,12 @@ export default {
     startFast: function() {
       this.stateMachine.playFast()
     },
-    shicoVolumeUp: function(trackNumber) {
+    shicoVolumeChange: function(trackNumber, newVolume) {
       const voices = this.shicoVoices.find(function(voices) {
         return voices.trackNumber == trackNumber
       })
       const group = voices.group
-      group.setShicoVolume(this.shicoVolume + 10)
-      this.shicoVolume = group.getShicoVolume()
-    },
-    shicoVolumeDown: function(trackNumber) {
-      const voices = this.shicoVoices.find(function(voices) {
-        return voices.trackNumber == trackNumber
-      })
-      const group = voices.group
-      group.setShicoVolume(this.shicoVolume - 10)
+      group.setShicoVolume(newVolume)
       this.shicoVolume = group.getShicoVolume()
     },
     shicoPanChange: function(trackNumber, value) {
@@ -168,6 +168,16 @@ export default {
         return voices.trackNumber == trackNumber
       })
       voices.group.setShicoPan(value)
+    },
+    ingoVolumeChange: function(trackNumber, newVolume) {
+      // TODO: Using trackNumber to find the entry in the array is not scalable.
+      // Reconsider this if there is a chance this gets large.
+      const voices = this.ingoVoices.find(function(voices) {
+        return voices.trackNumber == trackNumber
+      })
+      const group = voices.group
+      group.setPharseVolume(newVolume)
+      voices.volume = group.getPhraseVolume()
     },
     ingoCheckChange: function(trackNumber, checked) {
       const voices = this.ingoVoices.find(function(voices) {
@@ -180,26 +190,6 @@ export default {
         return
       }
       this.stateMachine.addPhraseGroup(voices.group)
-    },
-    ingoVolumeUp: function(trackNumber) {
-      // TODO: Using trackNumber to find the entry in the array is not scalable.
-      // Reconsider this if there is a chance this gets large.
-      const voices = this.ingoVoices.find(function(voices) {
-        return voices.trackNumber == trackNumber
-      })
-      const group = voices.group
-      group.setPharseVolume(group.getPhraseVolume() + 10)
-      voices.volume = group.getPhraseVolume()
-      console.log(voices.volume)
-    },
-    ingoVolumeDown: function(trackNumber) {
-      const voices = this.ingoVoices.find(function(voices) {
-        return voices.trackNumber == trackNumber
-      })
-      const group = voices.group
-      group.setPharseVolume(group.getPhraseVolume() - 10)
-      voices.volume = group.getPhraseVolume()
-      console.log(voices.volume)
     },
     ingoPanChange: function(trackNumber, value) {
       const voices = this.ingoVoices.find(function(voices) {
@@ -219,15 +209,47 @@ export default {
 </script>
 
 <style>
+#countdowntimer {
+  text-align: center;
+}
+#remainingtime {
+  text-align: center;
+}
 .actionbutton {
-  border: solid;
+  text-align: center;
 }
-.shicovoicecontroller {
-  display: inline-block;
-  border: solid;
+
+#voicecontrollers {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  column-gap: 10px;
+  grid-template-columns: 1fr 2fr;
 }
-.ingovoicecontroller {
-  display: inline-block;
-  border: solid;
+
+.voicecontroller {
+  padding: 4px 10px;
+  margin-bottom: 1em;
+  background: #ffffff;
+  color: #333;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1.3em;
+  border: 1px dashed rgb(122, 122, 122);
+  border-radius: 2px;
+  /* box-shadow: 0 0 0 2px #cccccc, 2px 1px 6px 2px rgba(10, 10, 0, 0.5); */
+  /* text-shadow: 1px 1px #fff; */
+  font-weight: normal;
+}
+
+.voice-category {
+  text-align: center;
+  text-decoration: underline;
+  font-weight: bold;
+}
+
+#ingo-voice-controllers {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  grid-template-columns: 1fr 1fr;
 }
 </style>
