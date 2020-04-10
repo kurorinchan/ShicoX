@@ -1,6 +1,12 @@
 <template>
   <div>
-    <input id="path-input" type="text" placeholder="フォルダ名" v-model="path" @input="directoryEntered" />
+    <input
+      id="path-input"
+      type="text"
+      placeholder="フォルダ名"
+      v-model="path"
+      @keyup.enter="directoryEntered"
+    />
     <input
       id="file-selector"
       name="input-file-selection"
@@ -27,6 +33,8 @@ export default {
   },
   methods: {
     directoryEntered: function(event) {
+      // TODO: Validate that the entered path is a directory. If not
+      // put a warning next to the inputs.
       this.path = event.target.value
       this.$emit('folder-selected', this.path)
     },

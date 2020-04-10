@@ -83,48 +83,31 @@ export default {
     FolderSelector
   },
   data() {
-    const finder = new af.AssetFinder(audioResoucePath)
-    const groups = finder.findAudioAssetGroups()
     const ingoVoices = []
     const shicoVoices = []
     const stateMachine = new asm.AudioStateMachine()
-    for (const [index, group] of groups.entries()) {
-      group.setPharseVolume(INIT_VOLUME)
-      group.setShicoVolume(SHICO_INIT_VOLUME)
-      stateMachine.addPhraseGroup(group)
 
-      // TODO: Consider making AudioAssetGroup the object to be registered.
-      // It would require some kind of coordination between these fields that
-      // get displayed and the class itself.
+    for (let i = 0; i < 2; ++i) {
+      const trackNumber = i + 1
       ingoVoices.push({
-        volume: group.getPhraseVolume(),
-        checked: true,
-        trackNumber: group.assetGroupNumber(),
-        group
+        volume: INIT_VOLUME,
+        checked: false,
+        trackNumber,
+        group: null
       })
       shicoVoices.push({
         selected: false,
-        trackNumber: group.assetGroupNumber(),
-        group
+        trackNumber,
+        group: null
       })
-    }
-
-    let shicoVolume = SHICO_INIT_VOLUME
-
-    if (groups.length > 0) {
-      const firstGroup = groups[0]
-      stateMachine.setShicoGroup(firstGroup)
-      shicoVoices[0].selected = true
-      shicoVolume = firstGroup.getShicoVolume()
     }
 
     return {
       stateMachine,
       remainingTime: 10 * MIN_TO_SECONDS,
-      pan: 'left',
       ingoVoices,
       shicoVoices,
-      shicoVolume,
+      shicoVolume: SHICO_INIT_VOLUME,
       initPath: ''
     }
   },
@@ -141,6 +124,9 @@ export default {
       const voices = this.shicoVoices.find(function(voices) {
         return voices.selected
       })
+      if (!voices) {
+        return 0
+      }
       return voices.trackNumber
     }
   },
@@ -207,7 +193,41 @@ export default {
       // shasei button.
       this.stateMachine.end()
     },
-    folderSelected: function(directory) {}
+    folderSelected: function(directory) {
+      console.log(directory)
+      const finder = new af.AssetFinder(directory)
+      const groups = finder.findAudioAssetGroups()
+      console.log(groups)
+      for (const [index, group] of groups.entries()) {
+        if (this.index >= this.ingoVoices.length) {
+          // TODO: Investigate whether dynamically adding array elements work.
+          // Currently cannot be handled.
+          break
+        }
+        group.setPharseVolume(INIT_VOLUME)
+        group.setShicoVolume(SHICO_INIT_VOLUME)
+        this.stateMachine.addPhraseGroup(group)
+
+        this.ingoVoices[index] = Object.assign(this.ingoVoices[index], {
+          volume: group.getPhraseVolume(),
+          checked: true,
+          trackNumber: group.assetGroupNumber(),
+          group
+        })
+        this.shicoVoices[index] = Object.assign(this.shicoVoices[index], {
+          selected: false,
+          trackNumber: group.assetGroupNumber(),
+          group
+        })
+      }
+
+      if (groups.length > 0) {
+        const firstGroup = groups[0]
+        this.stateMachine.setShicoGroup(firstGroup)
+        this.shicoVoices[0].selected = true
+        this.shicoVolume = firstGroup.getShicoVolume()
+      }
+    }
   }
 }
 </script>
