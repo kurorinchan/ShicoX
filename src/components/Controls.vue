@@ -1,5 +1,6 @@
 <template>
   <div id="controls">
+    <FolderSelector :initPath="initPath" @folder-selected="folderSelected" />
     <CountDownTimer id="countdowntimer" @new-duration="displayedRemainingTime = $event" />
     <div id="remainingtime">あと{{ displayedRemainingTime }}分</div>
     <ActionButtons
@@ -49,26 +50,26 @@ import CountDownTimer from './CountDownTimer.vue'
 import ActionButtons from './ActionButtons.vue'
 import ShicoVoiceController from './ShicoVoiceController.vue'
 import IngoVoiceController from './IngoVoiceController.vue'
+import FolderSelector from './FolderSelector.vue'
 
 const asm = require('./AudioStateMachine')
 const af = require('./AssetFinder')
 
 const app = require('electron').remote.app
 
-var basepath = app.getAppPath()
-var audioResoucePath = basepath
-console.log(basepath)
-
-console.log(process.env)
-
+const basepath = app.getAppPath()
+let audioResoucePath = ''
 if (process.env.NODE_ENV === 'development') {
   audioResoucePath = process.env.VUE_APP_AUDIO_RESOURCE_PATH
 }
+
+console.log(basepath)
+console.log(process.env)
 console.log(audioResoucePath)
 
+// TODO: This conversion is probably not necessary. Remove.
 const MIN_TO_SECONDS = 60
 
-const SHICO_KEY = 'shicoAudioTrack'
 const SHICO_INIT_VOLUME = 100
 const INIT_VOLUME = 100
 
@@ -78,7 +79,8 @@ export default {
     ActionButtons,
     CountDownTimer,
     ShicoVoiceController,
-    IngoVoiceController
+    IngoVoiceController,
+    FolderSelector
   },
   data() {
     const finder = new af.AssetFinder(audioResoucePath)
@@ -122,7 +124,8 @@ export default {
       pan: 'left',
       ingoVoices,
       shicoVoices,
-      shicoVolume
+      shicoVolume,
+      initPath: ''
     }
   },
   computed: {
@@ -203,7 +206,8 @@ export default {
     last: function() {
       // shasei button.
       this.stateMachine.end()
-    }
+    },
+    folderSelected: function(directory) {}
   }
 }
 </script>

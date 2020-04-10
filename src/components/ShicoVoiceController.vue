@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div>Selected track {{trackNumber}}</div>
+    <div class="unselectable-text tracknumber">Track {{trackNumber}}</div>
     <Volume @volume-change="$emit('volume-change', trackNumber, $event)" />
     <Pan @pan-change="$emit('pan-change', trackNumber, $event)" />
   </div>
@@ -37,8 +37,11 @@ export default {
 </script>
 
 <style scoped>
-.labelnumber {
-  display: inline-block;
-  width: 4ch;
+.tracknumber {
+  text-decoration: underline;
+}
+
+.unselectable-text {
+  user-select: none;
 }
 </style>

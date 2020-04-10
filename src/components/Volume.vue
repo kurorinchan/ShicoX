@@ -35,6 +35,10 @@ export default {
   grid-template-columns: 5ch 3ch 1fr 3ch;
 }
 
+#currentvolume {
+  text-align: center;
+}
+
 .slider {
   appearance: none;
   width: 100%;
@@ -58,9 +62,5 @@ export default {
 
 .unselectable-text {
   user-select: none;
-  -moz-user-select: none;
-  -khtml-user-select: none;
-  -webkit-user-select: none;
-  -o-user-select: none;
 }
 </style>

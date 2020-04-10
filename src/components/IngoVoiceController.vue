@@ -2,9 +2,10 @@
   <div id="ingovoicecontroller">
     <div class="unselectable-text tracknumber">台詞{{trackNumber}}</div>
     <div id="playcheck">
-      <label for="playcheckbox" class="unselectable-text">Play</label>
+      <label for="play-checkbox" class="unselectable-text">Play</label>
       <input
-        name="playcheckbox"
+        id="checkbox"
+        name="play-checkbox"
         type="checkbox"
         :checked="checked"
         v-on:change="$emit('check-change', trackNumber, !checked)"
@@ -47,6 +48,10 @@ export default {
   row-gap: 0px;
 }
 
+#checkbox {
+  text-align: center;
+}
+
 /* This layout should be shared with other components */
 #playcheck {
   display: grid;
@@ -60,9 +65,5 @@ export default {
 
 .unselectable-text {
   user-select: none;
-  -moz-user-select: none;
-  -khtml-user-select: none;
-  -webkit-user-select: none;
-  -o-user-select: none;
 }
 </style>

@@ -942,3 +942,5 @@ describe('AudioStatemachine', function () {
     })
   })
 })
+// TODO: Add a case where a group is removed while playing 'end'.
+// And make sure that it ends in a some terminating state.
