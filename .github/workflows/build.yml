@@ -19,7 +19,7 @@ jobs:
     - name: yarn install
       run: yarn install    
     - name: build
-      run: yarn electron:build
+      run: yarn electron:build --publish=never
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
