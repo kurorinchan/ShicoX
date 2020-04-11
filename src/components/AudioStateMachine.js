@@ -225,7 +225,6 @@ class AudioStateMachine {
   // TODO: This is not a public function. Move below or somehow organize it
   // to make it obvious.
   abrupt() {
-    this.clearTimer()
     this.stopAllPlayback()
 
     this.state = ABRUPT_STATE
@@ -240,7 +239,6 @@ class AudioStateMachine {
       return
     }
 
-    this.clearTimer()
     this.stopAllPlayback()
 
     this.state = GIVE_UP_STATE
@@ -279,7 +277,6 @@ class AudioStateMachine {
 
   stop() {
     this.stopAllPlayback()
-    console.log('stop')
     this.state = INIT_STATE
   }
 
@@ -328,14 +325,20 @@ class AudioStateMachine {
 
   // This will stop all the players that are playing and will empty the
   // phrasePlayers array and set shicoPlayer to null.
+  // This cancels the countdown timer as well.
   stopAllPlayback() {
+    this.stopPhrasesPlayback()
+    this.stopShicoPlayback()
+    this.clearTimer()
+  }
+
+  stopPhrasesPlayback() {
     if (this.phrasePlayers) {
       for (const player of this.phrasePlayers) {
         player.stop()
       }
     }
     this.phrasePlayers = []
-    this.stopShicoPlayback()
   }
 
   stopShicoPlayback() {
@@ -414,7 +417,7 @@ class AudioStateMachine {
     if (event.type == NULL_OPERATION_TYPE) {
       if (this.phrasePlayers.length > 0) {
         console.warn('There should not be any players in this state.')
-        this.stopAllPlayback()
+        this.stopPhrasesPlayback()
       }
       this.simultaneousPharsePlaybackStart('phrase')
       this.playShico(group => group.shico())
@@ -502,7 +505,7 @@ class AudioStateMachine {
     if (event.type == NULL_OPERATION_TYPE) {
       if (this.phrasePlayers.length > 0) {
         console.warn('There should not be any players in this state.')
-        this.stopAllPlayback()
+        this.stopPhrasesPlayback()
       }
 
       this.simultaneousPharsePlaybackStart('fast')

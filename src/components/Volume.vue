@@ -20,9 +20,15 @@
 <script>
 export default {
   name: 'Volume',
+  props: {
+    initVolume: {
+      type: Number,
+      default: 100,
+    }
+  },
   data() {
     return {
-      currentVolume: 100
+      currentVolume: this.initVolume
     }
   }
 }

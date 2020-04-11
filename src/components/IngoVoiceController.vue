@@ -8,6 +8,7 @@
         name="play-checkbox"
         type="checkbox"
         :checked="checked"
+        :disabled="!enabled"
         v-on:change="$emit('check-change', trackNumber, !checked)"
       />
     </div>
@@ -23,7 +24,13 @@ import Volume from './Volume.vue'
 export default {
   name: 'IngoVoiceController',
   components: { Pan, Volume },
-  props: ['volume', 'pan', 'trackNumber', 'checked'],
+  props: {
+    volume: Number,
+    pan: Number,
+    trackNumber: Number,
+    checked: Boolean,
+    enabled: Boolean
+  },
   data() {
     return {
       panValue: 0

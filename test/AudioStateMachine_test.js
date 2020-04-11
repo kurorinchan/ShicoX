@@ -1285,4 +1285,6 @@ describe('AudioStatemachine', function() {
   })
 })
 // TODO: Add a case where a group is removed while playing 'end'.
-// And make sure that it ends in a some terminating state.
+// And make sure that it ends in a some terminating state. IOW it should
+// transition to the next state (or terminate depending on the state) if
+// all phrase groups are removed.

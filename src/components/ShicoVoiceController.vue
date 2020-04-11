@@ -1,8 +1,11 @@
 <template>
   <div>
-    <div class="unselectable-text tracknumber">Track {{trackNumber}}</div>
-    <Volume @volume-change="$emit('volume-change', trackNumber, $event)" />
-    <Pan @pan-change="$emit('pan-change', trackNumber, $event)" />
+    <select @change="trackChange">
+      <option v-for="track in tracks" :key="track.trackNumber" :value="track.trackNumber">{{track.name}}</option>
+    </select>
+    <!-- It is probably a better design to also emit the track number of the selected track. But it's YAGNI atm. -->
+    <Volume :initVolume="volume" @volume-change="$emit('volume-change', $event)" />
+    <Pan @pan-change="$emit('pan-change', $event)" />
   </div>
 </template>
 
@@ -18,7 +21,16 @@ export default {
   },
   props: {
     volume: Number,
-    trackNumber: Number
+    // This be an array of objects. The object must at least have the following
+    // properties:
+    // - trackNumber: A unique identifier among the array.
+    // - name: The name displayed on the drop down.
+    // When there is a selection change (e.g. by the user) the entire object
+    // is emitted as a 'track-change' event.
+    selectableTracks: {
+      type: Array,
+      default: () => []
+    }
   },
   data() {
     return {
@@ -31,6 +43,16 @@ export default {
     },
     panRight: function() {
       return parseInt(this.panValue) + 50
+    },
+    tracks: function() {
+      const tracks = this.selectableTracks
+      return tracks.filter(track => track.name)
+    }
+  },
+  methods: {
+    trackChange: function(event) {
+      const select = event.srcElement
+      this.$emit('track-change', select.options[select.selectedIndex].value)
     }
   }
 }

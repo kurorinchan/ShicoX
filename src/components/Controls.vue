@@ -18,6 +18,8 @@
           class="voicecontroller"
           :volume="shicoVolume"
           :trackNumber="shicoTrackNumber"
+          :selectableTracks="shicoVoices"
+          @track-change="shicoTrackChange"
           @volume-change="shicoVolumeChange"
           @pan-change="shicoPanChange"
         />
@@ -33,6 +35,7 @@
             :pan="item.pan"
             :track-number="item.trackNumber"
             :checked="item.checked"
+            :enabled="item.enabled"
             @volume-change="ingoVolumeChange"
             @check-change="ingoCheckChange"
             @pan-change="ingoPanChange"
@@ -73,7 +76,7 @@ console.log(audioResoucePath)
 // TODO: This conversion is probably not necessary. Remove.
 const MIN_TO_SECONDS = 60
 
-const SHICO_INIT_VOLUME = 100
+const SHICO_INIT_VOLUME = 75
 const INIT_VOLUME = 100
 
 export default {
@@ -98,11 +101,13 @@ export default {
         volume: INIT_VOLUME,
         checked: false,
         trackNumber,
+        enabled: false,
         group: null
       })
       shicoVoices.push({
         selected: false,
         trackNumber,
+        name: '',
         group: null
       })
     }
@@ -149,19 +154,26 @@ export default {
     startFast: function() {
       this.stateMachine.playFast()
     },
-    shicoVolumeChange: function(trackNumber, newVolume) {
+    shicoTrackChange(newTrackNumber) {
       const voices = this.shicoVoices.find(function(voices) {
-        return voices.trackNumber == trackNumber
+        return voices.trackNumber == newTrackNumber
       })
-      const group = voices.group
-      group.setShicoVolume(newVolume)
-      this.shicoVolume = group.getShicoVolume()
+      this.stateMachine.setShicoGroup(voices.group)
     },
-    shicoPanChange: function(trackNumber, value) {
-      const voices = this.shicoVoices.find(function(voices) {
-        return voices.trackNumber == trackNumber
-      })
-      voices.group.setShicoPan(value)
+    shicoVolumeChange: function(newVolume) {
+      // Note that since there is only one volume controller for shico voices,
+      // its best to change the volumes for all groups. This way when a
+      // different group is selected (i.e. shicoTrackChange happens) the volume
+      // is already set.
+      for (const voices of this.shicoVoices) {
+        voices.group.setShicoVolume(newVolume)
+      }
+    },
+    shicoPanChange: function(value) {
+      // Change all of them due to the same reasons as volume.
+      for (const voices of this.shicoVoices) {
+        voices.group.setShicoPan(value)
+      }
     },
     ingoVolumeChange: function(trackNumber, newVolume) {
       // TODO: Using trackNumber to find the entry in the array is not scalable.
@@ -212,12 +224,14 @@ export default {
           volume: group.getPhraseVolume(),
           checked: true,
           trackNumber: group.assetGroupNumber(),
-          group
+          group,
+          enabled: true
         }
 
         const newShicoVoice = {
           selected: false,
           trackNumber: group.assetGroupNumber(),
+          name: 'Track' + group.assetGroupNumber(),
           group
         }
 
