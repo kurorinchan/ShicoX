@@ -43,14 +43,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      # TODO: It's probably best to use package.json to configure these,
-      # if that works.
-      - name: build win
-        if: runner.os == 'Windows'
-        run: yarn electron:build --publish=onTagOrDraft --target=portable
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # TODO: The unit test's paths aren't Windows friendly. Fix it.
       - name: Run unit tests
         if: runner.os != 'Windows'

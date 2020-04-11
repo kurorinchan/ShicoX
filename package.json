@@ -52,5 +52,13 @@
   "browserslist": [
     "> 1%",
     "last 2 versions"
-  ]
+  ],
+  "build": {
+    "win": {
+      "target": "portable"
+    },
+    "mac": {
+      "target": "zip"
+    }
+  }
 }
