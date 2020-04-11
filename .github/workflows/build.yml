@@ -6,15 +6,14 @@ on:
   pull_request:
     branches: [ master ]
 
-
-
 jobs:
-  build_on_linux:
-    runs-on: ubuntu-latest
-
+  build:
     strategy:
       matrix:
         node-version: [12.x]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v2
@@ -26,15 +25,25 @@ jobs:
       run: yarn install
     # Since the project is using electron-builder 21, this patching seems to be necesssary.
     # See https://github.com/electron-userland/electron-builder/issues/4176
-    - name: Temporarily fix electron-builder
+    - name: Temporarily fix electron-builder (non-mac)
+      if: runner.os != 'macOS'
       run: |
         sed -i 's/\^\[\\w/\^\[.\\w/g' node_modules/builder-util/out/util.js
+      shell: bash
+    # Note that the command is slightly different.
+    # See https://github.com/electron-userland/electron-builder/issues/4176#issuecomment-537617804
+    - name: Temporarily fix electron-builder (mac)
+      if: runner.os == 'macOS'
+      run: |
+        sed -i '' 's/\^\[\\w/\^\[.\\w/g' node_modules/builder-util/out/util.js
       shell: bash
     - name: build
       run: yarn electron:build --publish=onTagOrDraft
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    # TODO: The unit test's paths aren't Windows friendly. Fix it.
     - name: Run unit tests
+      if: runner.os != 'Windows'
       run: ./node_modules/.bin/_mocha
       shell: bash
