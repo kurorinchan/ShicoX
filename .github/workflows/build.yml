@@ -7,7 +7,7 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
+  setup:
     strategy:
       matrix:
         node-version: [12.x]
@@ -37,13 +37,33 @@ jobs:
       run: |
         sed -i '' 's/\^\[\\w/\^\[.\\w/g' node_modules/builder-util/out/util.js
       shell: bash
+
+  build_on_mac_and_linux:
+    needs: setup
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
     - name: build
       run: yarn electron:build --publish=onTagOrDraft
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    # TODO: The unit test's paths aren't Windows friendly. Fix it.
     - name: Run unit tests
-      if: runner.os != 'Windows'
       run: ./node_modules/.bin/_mocha
       shell: bash
+
+  build_on_win:
+    needs: setup
+    runs-on: windows-latest
+    steps:
+    # Want portable build for Windows.
+    - name: build
+      run: yarn electron:build --publish=onTagOrDraft --target=portable
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    # TODO: The unit test's paths aren't Windows friendly. Fix it.
