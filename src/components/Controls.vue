@@ -26,7 +26,7 @@
         <div class="voice-category">淫語ボイス</div>
         <div id="ingo-voice-controllers">
           <IngoVoiceController
-            class="voicecontroller"
+            class="voicecontroller ingo-controller"
             v-for="item in ingoVoices"
             :key="item.trackNumber"
             :volume="item.volume"
@@ -59,6 +59,9 @@ const app = require('electron').remote.app
 
 const basepath = app.getAppPath()
 let audioResoucePath = ''
+
+// For development only, if the environment variable is set, it loads it
+// on initialize.
 if (process.env.NODE_ENV === 'development') {
   audioResoucePath = process.env.VUE_APP_AUDIO_RESOURCE_PATH
 }
@@ -87,6 +90,8 @@ export default {
     const shicoVoices = []
     const stateMachine = new asm.AudioStateMachine()
 
+    // For now, the number of boxes shown by default is 2. This could be
+    // dynamically added later (but the grid layout may have to be adjusted).
     for (let i = 0; i < 2; ++i) {
       const trackNumber = i + 1
       ingoVoices.push({
@@ -108,7 +113,7 @@ export default {
       ingoVoices,
       shicoVoices,
       shicoVolume: SHICO_INIT_VOLUME,
-      initPath: ''
+      initPath: audioResoucePath
     }
   },
   computed: {
@@ -194,31 +199,35 @@ export default {
       this.stateMachine.end()
     },
     folderSelected: function(directory) {
-      console.log(directory)
+      this.stateMachine.clear()
       const finder = new af.AssetFinder(directory)
       const groups = finder.findAudioAssetGroups()
-      console.log(groups)
+      const originalVoicesLength = this.ingoVoices.length
       for (const [index, group] of groups.entries()) {
-        if (this.index >= this.ingoVoices.length) {
-          // TODO: Investigate whether dynamically adding array elements work.
-          // Currently cannot be handled.
-          break
-        }
         group.setPharseVolume(INIT_VOLUME)
         group.setShicoVolume(SHICO_INIT_VOLUME)
         this.stateMachine.addPhraseGroup(group)
 
-        this.ingoVoices[index] = Object.assign(this.ingoVoices[index], {
+        const newIngoVoice = {
           volume: group.getPhraseVolume(),
           checked: true,
           trackNumber: group.assetGroupNumber(),
           group
-        })
-        this.shicoVoices[index] = Object.assign(this.shicoVoices[index], {
+        }
+
+        const newShicoVoice = {
           selected: false,
           trackNumber: group.assetGroupNumber(),
           group
-        })
+        }
+
+        if (index < originalVoicesLength) {
+          Object.assign(this.ingoVoices[index], newIngoVoice)
+          Object.assign(this.shicoVoices[index], newShicoVoice)
+        } else {
+          this.ingoVoices.push(newIngoVoice)
+          this.shicoVoices.push(newShicoVoice)
+        }
       }
 
       if (groups.length > 0) {
@@ -245,7 +254,7 @@ export default {
 
 #voicecontrollers {
   display: grid;
-  grid-template-rows: 1fr 1fr;
+  grid-template-rows: 1fr;
   column-gap: 10px;
   grid-template-columns: 1fr 2fr;
 }
@@ -260,8 +269,6 @@ export default {
   line-height: 1.3em;
   border: 1px dashed rgb(122, 122, 122);
   border-radius: 2px;
-  /* box-shadow: 0 0 0 2px #cccccc, 2px 1px 6px 2px rgba(10, 10, 0, 0.5); */
-  /* text-shadow: 1px 1px #fff; */
   font-weight: normal;
 }
 
@@ -271,9 +278,11 @@ export default {
   font-weight: bold;
 }
 
+/* TODO: Need more CSS to get this flowing.
+   This probably does not allow adding a third element. */
 #ingo-voice-controllers {
   display: grid;
-  grid-template-rows: 1fr 1fr;
+  grid-template-rows: 1fr;
   grid-template-columns: 1fr 1fr;
 }
 </style>

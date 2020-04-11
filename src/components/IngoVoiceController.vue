@@ -52,7 +52,7 @@ export default {
   text-align: center;
 }
 
-/* This layout should be shared with other components */
+/* TODO: This layout should be shared with other components */
 #playcheck {
   display: grid;
   grid-template-rows: 1fr;

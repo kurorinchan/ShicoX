@@ -12,17 +12,20 @@ const isDevelopment = process.env.NODE_ENV !== 'production'
 let win
 
 // Scheme must be registered before the app is ready
-protocol.registerSchemesAsPrivileged([{ scheme: 'app', privileges: { secure: true, standard: true } }])
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'app', privileges: { secure: true, standard: true } }
+])
 
-function createWindow () {
+function createWindow() {
   // Create the browser window.
   win = new BrowserWindow({
-    width: 1500,
-    height: 700,
+    width: 800,
+    height: 400,
     webPreferences: {
       // Disable websecurity to allow render to access files.
       // Since this app won't access any web data, this should be fine.
-      nodeIntegration: true, webSecurity: false
+      nodeIntegration: true,
+      webSecurity: false
     }
   })
 
@@ -77,7 +80,6 @@ app.on('ready', async () => {
     // } catch (e) {
     //   console.error('Vue Devtools failed to install:', e.toString())
     // }
-
   }
   createWindow()
 })

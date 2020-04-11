@@ -68,30 +68,33 @@ class FakeGroup {
   }
 }
 
-describe('AudioStatemachine', function () {
+describe('AudioStatemachine', function() {
   let clock = null
-  beforeEach(function () {
+  beforeEach(function() {
     clock = sinon.useFakeTimers()
   })
 
-  afterEach(function () {
+  afterEach(function() {
     clock.restore()
   })
 
-  it('add phrase groups', function () {
+  it('add phrase groups', function() {
     const machine = new AudioStateMachine()
     machine.addPhraseGroup({})
   })
 
-  describe('Single phrase group only', function () {
-    it('play', function () {
+  describe('Single phrase group only', function() {
+    it('play', function() {
       const machine = new AudioStateMachine()
       const fakeGroup = new FakeGroup()
       const fakePlayer = new FakePlayer()
       const phraseGroupMock = sinon.mock(fakeGroup)
       const onendedSpy = sinon.spy(fakePlayer, 'onplayended', ['set'])
       const playSpy = sinon.spy(fakePlayer, 'play')
-      phraseGroupMock.expects('start').once().returns(fakePlayer)
+      phraseGroupMock
+        .expects('start')
+        .once()
+        .returns(fakePlayer)
       machine.addPhraseGroup(fakeGroup)
       machine.play(1)
       expect(onendedSpy.set.calledOnce).to.be.true
@@ -100,20 +103,26 @@ describe('AudioStatemachine', function () {
 
     // This "starts" and the play back finishes, and expects the "phrase" to be
     // played next.
-    it('start play and then transition to normal state', function () {
+    it('start play and then transition to normal state', function() {
       const machine = new AudioStateMachine()
       const fakeGroup = new FakeGroup()
       const fakePlayer = new FakePlayer()
       const phraseGroupMock = sinon.mock(fakeGroup)
       const onendedSpy = sinon.spy(fakePlayer, 'onplayended', ['set'])
       const playSpy = sinon.spy(fakePlayer, 'play')
-      phraseGroupMock.expects('start').once().returns(fakePlayer)
+      phraseGroupMock
+        .expects('start')
+        .once()
+        .returns(fakePlayer)
       machine.addPhraseGroup(fakeGroup)
       machine.play(1)
       expect(onendedSpy.set.calledOnce).to.be.true
       expect(playSpy.calledOnce).to.be.true
 
-      phraseGroupMock.expects('phrase').once().returns(fakePlayer)
+      phraseGroupMock
+        .expects('phrase')
+        .once()
+        .returns(fakePlayer)
 
       fakePlayer.fireCallback()
       expect(onendedSpy.set.calledTwice).to.be.true
@@ -122,14 +131,17 @@ describe('AudioStatemachine', function () {
 
     // This shouldn't transition states. The timer should start/fire after the
     // playback ends.
-    it('start play and before playback finishes 60 seconds go by', function () {
+    it('start play and before playback finishes 60 seconds go by', function() {
       const machine = new AudioStateMachine()
       const fakeGroup = new FakeGroup()
       const fakePlayer = new FakePlayer()
       const phraseGroupMock = sinon.mock(fakeGroup)
       const onendedSpy = sinon.spy(fakePlayer, 'onplayended', ['set'])
       const playSpy = sinon.spy(fakePlayer, 'play')
-      phraseGroupMock.expects('start').once().returns(fakePlayer)
+      phraseGroupMock
+        .expects('start')
+        .once()
+        .returns(fakePlayer)
       machine.addPhraseGroup(fakeGroup)
       machine.play(1)
       expect(onendedSpy.set.calledOnce).to.be.true
@@ -141,18 +153,24 @@ describe('AudioStatemachine', function () {
 
     // The playback starts with 2 minutes. When the timer goes off after a minute,
     // it should playback a countdown voice.
-    it('start play finishes and timer fires while playing normal phrases', function () {
+    it('start play finishes and timer fires while playing normal phrases', function() {
       const machine = new AudioStateMachine()
       const fakeGroup = new FakeGroup()
       const fakePlayer = new FakePlayer()
       const phraseGroupMock = sinon.mock(fakeGroup)
       const onendedSpy = sinon.spy(fakePlayer, 'onplayended', ['set'])
       const playSpy = sinon.spy(fakePlayer, 'play')
-      phraseGroupMock.expects('start').once().returns(fakePlayer)
+      phraseGroupMock
+        .expects('start')
+        .once()
+        .returns(fakePlayer)
 
       // Expect 'phrase' to be called twice because the phrase finish callback
       // is fired below.
-      phraseGroupMock.expects('phrase').twice().returns(fakePlayer)
+      phraseGroupMock
+        .expects('phrase')
+        .twice()
+        .returns(fakePlayer)
 
       machine.addPhraseGroup(fakeGroup)
       machine.play(2)
@@ -179,14 +197,17 @@ describe('AudioStatemachine', function () {
       phraseGroupMock.verify()
     })
 
-    it('start play and before playback finishes 60 seconds go by', function () {
+    it('start play and before playback finishes 60 seconds go by', function() {
       const machine = new AudioStateMachine()
       const fakeGroup = new FakeGroup()
       const fakePlayer = new FakePlayer()
       const phraseGroupMock = sinon.mock(fakeGroup)
       const onendedSpy = sinon.spy(fakePlayer, 'onplayended', ['set'])
       const playSpy = sinon.spy(fakePlayer, 'play')
-      phraseGroupMock.expects('start').once().returns(fakePlayer)
+      phraseGroupMock
+        .expects('start')
+        .once()
+        .returns(fakePlayer)
       machine.addPhraseGroup(fakeGroup)
       machine.play(1)
       expect(onendedSpy.set.calledOnce).to.be.true
@@ -199,13 +220,19 @@ describe('AudioStatemachine', function () {
     // The playback starts with 2 minutes. When the timer goes off after a minute,
     // it should playback a countdown voice.
     // Then it continues till last minute state.
-    it('play till last minute state', function () {
+    it('play till last minute state', function() {
       const machine = new AudioStateMachine()
       const fakeGroup = new FakeGroup()
       const fakePlayer = new FakePlayer()
       const phraseGroupMock = sinon.mock(fakeGroup)
-      phraseGroupMock.expects('start').once().returns(fakePlayer)
-      phraseGroupMock.expects('phrase').twice().returns(fakePlayer)
+      phraseGroupMock
+        .expects('start')
+        .once()
+        .returns(fakePlayer)
+      phraseGroupMock
+        .expects('phrase')
+        .twice()
+        .returns(fakePlayer)
       phraseGroupMock
         .expects('perMinuteNotification')
         .withArgs(1)
@@ -228,7 +255,10 @@ describe('AudioStatemachine', function () {
       clock.tick(60000)
 
       // Once the second 'phrase' completes, it should now play 'lastMinute'.
-      phraseGroupMock.expects('lastMinute').once().returns(fakePlayer)
+      phraseGroupMock
+        .expects('lastMinute')
+        .once()
+        .returns(fakePlayer)
 
       // Playback end for the second 'phrase'.
       fakePlayer.fireCallback()
@@ -236,19 +266,28 @@ describe('AudioStatemachine', function () {
     })
 
     // Play starts normally then go all the way to fast.
-    it('play till fast', function () {
+    it('play till fast', function() {
       const machine = new AudioStateMachine()
       const fakeGroup = new FakeGroup()
       const fakePlayer = new FakePlayer()
       const phraseGroupMock = sinon.mock(fakeGroup)
-      phraseGroupMock.expects('start').once().returns(fakePlayer)
-      phraseGroupMock.expects('phrase').twice().returns(fakePlayer)
+      phraseGroupMock
+        .expects('start')
+        .once()
+        .returns(fakePlayer)
+      phraseGroupMock
+        .expects('phrase')
+        .twice()
+        .returns(fakePlayer)
       phraseGroupMock
         .expects('perMinuteNotification')
         .withArgs(1)
         .once()
         .returns(new FakePlayer())
-      phraseGroupMock.expects('lastMinute').once().returns(fakePlayer)
+      phraseGroupMock
+        .expects('lastMinute')
+        .once()
+        .returns(fakePlayer)
 
       machine.addPhraseGroup(fakeGroup)
       machine.play(2)
@@ -268,7 +307,10 @@ describe('AudioStatemachine', function () {
       // Playback end for the second 'phrase'.
       fakePlayer.fireCallback()
 
-      phraseGroupMock.expects('fast').once().returns(fakePlayer)
+      phraseGroupMock
+        .expects('fast')
+        .once()
+        .returns(fakePlayer)
 
       // Playback end for 'lastminute'
       fakePlayer.fireCallback()
@@ -277,21 +319,33 @@ describe('AudioStatemachine', function () {
     })
 
     // This is a complete sequence of states from start to finish.
-    it('play till end', function () {
+    it('play till end', function() {
       const machine = new AudioStateMachine()
       const fakeGroup = new FakeGroup()
       const fakePlayer = new FakePlayer()
       const fakePlayerMock = sinon.mock(fakePlayer)
       const phraseGroupMock = sinon.mock(fakeGroup)
-      phraseGroupMock.expects('start').once().returns(fakePlayer)
-      phraseGroupMock.expects('phrase').twice().returns(fakePlayer)
+      phraseGroupMock
+        .expects('start')
+        .once()
+        .returns(fakePlayer)
+      phraseGroupMock
+        .expects('phrase')
+        .twice()
+        .returns(fakePlayer)
       phraseGroupMock
         .expects('perMinuteNotification')
         .withArgs(1)
         .once()
         .returns(new FakePlayer())
-      phraseGroupMock.expects('lastMinute').once().returns(fakePlayer)
-      phraseGroupMock.expects('fast').once().returns(fakePlayer)
+      phraseGroupMock
+        .expects('lastMinute')
+        .once()
+        .returns(fakePlayer)
+      phraseGroupMock
+        .expects('fast')
+        .once()
+        .returns(fakePlayer)
 
       machine.addPhraseGroup(fakeGroup)
       machine.play(2)
@@ -315,7 +369,10 @@ describe('AudioStatemachine', function () {
       fakePlayer.fireCallback()
 
       fakePlayerMock.expects('stop').once()
-      phraseGroupMock.expects('end').once().returns(fakePlayer)
+      phraseGroupMock
+        .expects('end')
+        .once()
+        .returns(fakePlayer)
 
       // The machine is forced into END_STATE. No playback end callback for 'fast'.
       machine.end()
@@ -328,13 +385,19 @@ describe('AudioStatemachine', function () {
     })
 
     // Play normal phrase a few times.
-    it('loop normal phrase', function () {
+    it('loop normal phrase', function() {
       const machine = new AudioStateMachine()
       const fakeGroup = new FakeGroup()
       const fakePlayer = new FakePlayer()
       const phraseGroupMock = sinon.mock(fakeGroup)
-      phraseGroupMock.expects('start').once().returns(fakePlayer)
-      phraseGroupMock.expects('phrase').atLeast(2).returns(fakePlayer)
+      phraseGroupMock
+        .expects('start')
+        .once()
+        .returns(fakePlayer)
+      phraseGroupMock
+        .expects('phrase')
+        .atLeast(2)
+        .returns(fakePlayer)
 
       machine.addPhraseGroup(fakeGroup)
       machine.play(1)
@@ -351,13 +414,19 @@ describe('AudioStatemachine', function () {
 
     // Play normal phrase a few times. The timer goes off once in a while but
     // the test will not reach the end of the countdown
-    it('loop normal phrase with timer', function () {
+    it('loop normal phrase with timer', function() {
       const machine = new AudioStateMachine()
       const fakeGroup = new FakeGroup()
       const fakePlayer = new FakePlayer()
       const phraseGroupMock = sinon.mock(fakeGroup)
-      phraseGroupMock.expects('start').once().returns(fakePlayer)
-      phraseGroupMock.expects('phrase').atLeast(2).returns(fakePlayer)
+      phraseGroupMock
+        .expects('start')
+        .once()
+        .returns(fakePlayer)
+      phraseGroupMock
+        .expects('phrase')
+        .atLeast(2)
+        .returns(fakePlayer)
       phraseGroupMock
         .expects('perMinuteNotification')
         .atLeast(1)
@@ -391,14 +460,20 @@ describe('AudioStatemachine', function () {
       phraseGroupMock.verify()
     })
 
-    it('force end in normal state', function () {
+    it('force end in normal state', function() {
       const machine = new AudioStateMachine()
       const fakeGroup = new FakeGroup()
       const fakePlayer = new FakePlayer('generic')
       const fakePlayerMock = sinon.mock(fakePlayer)
       const phraseGroupMock = sinon.mock(fakeGroup)
-      phraseGroupMock.expects('start').once().returns(fakePlayer)
-      phraseGroupMock.expects('phrase').atLeast(1).returns(fakePlayer)
+      phraseGroupMock
+        .expects('start')
+        .once()
+        .returns(fakePlayer)
+      phraseGroupMock
+        .expects('phrase')
+        .atLeast(1)
+        .returns(fakePlayer)
 
       machine.addPhraseGroup(fakeGroup)
       machine.play(100)
@@ -411,21 +486,30 @@ describe('AudioStatemachine', function () {
       // TODO: Decide whether this should be exact. This may require adding more
       // methods on Player or assign null to player field in state machine.
       fakePlayerMock.expects('stop').atLeast(1)
-      phraseGroupMock.expects('abrupt').once().returns(fakePlayer)
+      phraseGroupMock
+        .expects('abrupt')
+        .once()
+        .returns(fakePlayer)
 
       machine.end()
       fakePlayerMock.verify()
       phraseGroupMock.verify()
     })
 
-    it('timer fires when abrupt playing', function () {
+    it('timer fires when abrupt playing', function() {
       const machine = new AudioStateMachine()
       const fakeGroup = new FakeGroup()
       const fakePlayer = new FakePlayer('generic')
       const fakePlayerMock = sinon.mock(fakePlayer)
       const phraseGroupMock = sinon.mock(fakeGroup)
-      phraseGroupMock.expects('start').once().returns(fakePlayer)
-      phraseGroupMock.expects('phrase').atLeast(1).returns(fakePlayer)
+      phraseGroupMock
+        .expects('start')
+        .once()
+        .returns(fakePlayer)
+      phraseGroupMock
+        .expects('phrase')
+        .atLeast(1)
+        .returns(fakePlayer)
 
       machine.addPhraseGroup(fakeGroup)
       machine.play(100)
@@ -438,7 +522,10 @@ describe('AudioStatemachine', function () {
       // TODO: Decide whether this should be exact. This may require adding more
       // methods on Player or assign null to player field in state machine.
       fakePlayerMock.expects('stop').atLeast(1)
-      phraseGroupMock.expects('abrupt').once().returns(fakePlayer)
+      phraseGroupMock
+        .expects('abrupt')
+        .once()
+        .returns(fakePlayer)
 
       machine.end()
 
@@ -447,14 +534,20 @@ describe('AudioStatemachine', function () {
       phraseGroupMock.verify()
     })
 
-    it('force end in waiting-for-normal state', function () {
+    it('force end in waiting-for-normal state', function() {
       const machine = new AudioStateMachine()
       const fakeGroup = new FakeGroup()
       const fakePlayer = new FakePlayer('generic')
       const fakePlayerMock = sinon.mock(fakePlayer)
       const phraseGroupMock = sinon.mock(fakeGroup)
-      phraseGroupMock.expects('start').once().returns(fakePlayer)
-      phraseGroupMock.expects('phrase').atLeast(1).returns(fakePlayer)
+      phraseGroupMock
+        .expects('start')
+        .once()
+        .returns(fakePlayer)
+      phraseGroupMock
+        .expects('phrase')
+        .atLeast(1)
+        .returns(fakePlayer)
 
       machine.addPhraseGroup(fakeGroup)
       machine.play(1)
@@ -468,7 +561,10 @@ describe('AudioStatemachine', function () {
       // TODO: Decide whether this should be exact. This may require adding more
       // methods on Player or assign null to player field in state machine.
       fakePlayerMock.expects('stop').atLeast(1)
-      phraseGroupMock.expects('abrupt').once().returns(fakePlayer)
+      phraseGroupMock
+        .expects('abrupt')
+        .once()
+        .returns(fakePlayer)
 
       machine.end()
       fakePlayerMock.verify()
@@ -477,13 +573,19 @@ describe('AudioStatemachine', function () {
 
     // An edge case where end() is forced while 'lastMinute' is playing.
     // It should be a NOP, and transition normally to 'fast'.
-    it('force end right after countdown ends', function () {
+    it('force end right after countdown ends', function() {
       const machine = new AudioStateMachine()
       const fakeGroup = new FakeGroup()
       const fakePlayer = new FakePlayer('generic')
       const phraseGroupMock = sinon.mock(fakeGroup)
-      phraseGroupMock.expects('start').once().returns(fakePlayer)
-      phraseGroupMock.expects('phrase').atLeast(1).returns(fakePlayer)
+      phraseGroupMock
+        .expects('start')
+        .once()
+        .returns(fakePlayer)
+      phraseGroupMock
+        .expects('phrase')
+        .atLeast(1)
+        .returns(fakePlayer)
 
       const lastMinutePlayer = new FakePlayer('last-minute')
       const lastMinutePlayerMock = sinon.mock(lastMinutePlayer)
@@ -491,9 +593,15 @@ describe('AudioStatemachine', function () {
       // The player should not be stopped by end().
       lastMinutePlayerMock.expects('stop').never()
 
-      phraseGroupMock.expects('lastMinute').once().returns(lastMinutePlayer)
+      phraseGroupMock
+        .expects('lastMinute')
+        .once()
+        .returns(lastMinutePlayer)
 
-      phraseGroupMock.expects('fast').once().returns(fakePlayer)
+      phraseGroupMock
+        .expects('fast')
+        .once()
+        .returns(fakePlayer)
 
       machine.addPhraseGroup(fakeGroup)
       machine.play(1)
@@ -522,13 +630,19 @@ describe('AudioStatemachine', function () {
 
     // An edge case where giveUp() is forced while 'lastMinute' is playing.
     // It should be a NOP, and transition normally to 'fast'.
-    it('force giveup right after count down ends', function () {
+    it('force giveup right after count down ends', function() {
       const machine = new AudioStateMachine()
       const fakeGroup = new FakeGroup()
       const fakePlayer = new FakePlayer('generic')
       const phraseGroupMock = sinon.mock(fakeGroup)
-      phraseGroupMock.expects('start').once().returns(fakePlayer)
-      phraseGroupMock.expects('phrase').atLeast(1).returns(fakePlayer)
+      phraseGroupMock
+        .expects('start')
+        .once()
+        .returns(fakePlayer)
+      phraseGroupMock
+        .expects('phrase')
+        .atLeast(1)
+        .returns(fakePlayer)
 
       const lastMinutePlayer = new FakePlayer('last-minute')
       const lastMinutePlayerMock = sinon.mock(lastMinutePlayer)
@@ -536,9 +650,15 @@ describe('AudioStatemachine', function () {
       // The player should not be stopped by end().
       lastMinutePlayerMock.expects('stop').never()
 
-      phraseGroupMock.expects('lastMinute').once().returns(lastMinutePlayer)
+      phraseGroupMock
+        .expects('lastMinute')
+        .once()
+        .returns(lastMinutePlayer)
 
-      phraseGroupMock.expects('fast').once().returns(fakePlayer)
+      phraseGroupMock
+        .expects('fast')
+        .once()
+        .returns(fakePlayer)
 
       machine.addPhraseGroup(fakeGroup)
       machine.play(1)
@@ -565,14 +685,20 @@ describe('AudioStatemachine', function () {
       phraseGroupMock.verify()
     })
 
-    it('force giveup in normal state', function () {
+    it('force giveup in normal state', function() {
       const machine = new AudioStateMachine()
       const fakeGroup = new FakeGroup()
       const fakePlayer = new FakePlayer('generic')
       const fakePlayerMock = sinon.mock(fakePlayer)
       const phraseGroupMock = sinon.mock(fakeGroup)
-      phraseGroupMock.expects('start').once().returns(fakePlayer)
-      phraseGroupMock.expects('phrase').atLeast(1).returns(fakePlayer)
+      phraseGroupMock
+        .expects('start')
+        .once()
+        .returns(fakePlayer)
+      phraseGroupMock
+        .expects('phrase')
+        .atLeast(1)
+        .returns(fakePlayer)
 
       machine.addPhraseGroup(fakeGroup)
       machine.play(100)
@@ -583,12 +709,18 @@ describe('AudioStatemachine', function () {
       fakePlayer.fireCallback()
 
       fakePlayerMock.expects('stop').atLeast(1)
-      phraseGroupMock.expects('giveup').once().returns(fakePlayer)
+      phraseGroupMock
+        .expects('giveup')
+        .once()
+        .returns(fakePlayer)
 
       machine.giveUp()
 
       // Right after giveup whould be fast.
-      phraseGroupMock.expects('fast').once().returns(fakePlayer)
+      phraseGroupMock
+        .expects('fast')
+        .once()
+        .returns(fakePlayer)
 
       // Playback end for 'giveup'.
       fakePlayer.fireCallback()
@@ -598,14 +730,20 @@ describe('AudioStatemachine', function () {
     })
 
     // The timer event should not cause any problems. It should just be ignored.
-    it('timer fires when giveup is playing', function () {
+    it('timer fires when giveup is playing', function() {
       const machine = new AudioStateMachine()
       const fakeGroup = new FakeGroup()
       const fakePlayer = new FakePlayer('generic')
       const fakePlayerMock = sinon.mock(fakePlayer)
       const phraseGroupMock = sinon.mock(fakeGroup)
-      phraseGroupMock.expects('start').once().returns(fakePlayer)
-      phraseGroupMock.expects('phrase').atLeast(1).returns(fakePlayer)
+      phraseGroupMock
+        .expects('start')
+        .once()
+        .returns(fakePlayer)
+      phraseGroupMock
+        .expects('phrase')
+        .atLeast(1)
+        .returns(fakePlayer)
 
       machine.addPhraseGroup(fakeGroup)
       machine.play(100)
@@ -616,12 +754,18 @@ describe('AudioStatemachine', function () {
       fakePlayer.fireCallback()
 
       fakePlayerMock.expects('stop').atLeast(1)
-      phraseGroupMock.expects('giveup').once().returns(fakePlayer)
+      phraseGroupMock
+        .expects('giveup')
+        .once()
+        .returns(fakePlayer)
 
       machine.giveUp()
 
       // Right after giveup whould be fast.
-      phraseGroupMock.expects('fast').once().returns(fakePlayer)
+      phraseGroupMock
+        .expects('fast')
+        .once()
+        .returns(fakePlayer)
 
       clock.tick(60000)
 
@@ -633,17 +777,23 @@ describe('AudioStatemachine', function () {
     })
 
     // start fast and stay in FAST state.
-    it('start fast', function () {
+    it('start fast', function() {
       const machine = new AudioStateMachine()
       const fakeGroup = new FakeGroup()
       const fakePlayer = new FakePlayer('generic')
       const phraseGroupMock = sinon.mock(fakeGroup)
-      phraseGroupMock.expects('startFast').once().returns(fakePlayer)
+      phraseGroupMock
+        .expects('startFast')
+        .once()
+        .returns(fakePlayer)
 
       machine.addPhraseGroup(fakeGroup)
       machine.playFast()
 
-      phraseGroupMock.expects('fast').atLeast(1).returns(fakePlayer)
+      phraseGroupMock
+        .expects('fast')
+        .atLeast(1)
+        .returns(fakePlayer)
 
       // 'startFast' ends. Plays 'fast'.
       fakePlayer.fireCallback()
@@ -655,13 +805,19 @@ describe('AudioStatemachine', function () {
       phraseGroupMock.verify()
     })
 
-    it('start fast and play till end', function () {
+    it('start fast and play till end', function() {
       const machine = new AudioStateMachine()
       const fakeGroup = new FakeGroup()
       const fakePlayer = new FakePlayer('generic')
       const phraseGroupMock = sinon.mock(fakeGroup)
-      phraseGroupMock.expects('startFast').once().returns(fakePlayer)
-      phraseGroupMock.expects('fast').atLeast(1).returns(fakePlayer)
+      phraseGroupMock
+        .expects('startFast')
+        .once()
+        .returns(fakePlayer)
+      phraseGroupMock
+        .expects('fast')
+        .atLeast(1)
+        .returns(fakePlayer)
 
       machine.addPhraseGroup(fakeGroup)
       machine.playFast()
@@ -671,7 +827,10 @@ describe('AudioStatemachine', function () {
       // 'fast' ends. Plays the next 'fast'.
       fakePlayer.fireCallback()
 
-      phraseGroupMock.expects('end').once().returns(fakePlayer)
+      phraseGroupMock
+        .expects('end')
+        .once()
+        .returns(fakePlayer)
 
       machine.end()
 
@@ -682,21 +841,30 @@ describe('AudioStatemachine', function () {
     })
   })
 
-  describe('Single phrase with shico', function () {
-    it('start fast and stay in fast', function () {
+  describe('Single phrase with shico', function() {
+    it('start fast and stay in fast', function() {
       const machine = new AudioStateMachine()
       const fakeGroup = new FakeGroup()
       const fakePharsePlayer = new FakePlayer('generic')
       const fakeShicoPlayer = new FakePlayer('shico')
       const phraseGroupMock = sinon.mock(fakeGroup)
-      phraseGroupMock.expects('startFast').once().returns(fakePharsePlayer)
-      phraseGroupMock.expects('fast').exactly(3).returns(fakePharsePlayer)
+      phraseGroupMock
+        .expects('startFast')
+        .once()
+        .returns(fakePharsePlayer)
+      phraseGroupMock
+        .expects('fast')
+        .exactly(3)
+        .returns(fakePharsePlayer)
 
       machine.setShicoGroup(fakeGroup)
       machine.addPhraseGroup(fakeGroup)
       machine.playFast()
 
-      phraseGroupMock.expects('shicoFast').exactly(4).returns(fakeShicoPlayer)
+      phraseGroupMock
+        .expects('shicoFast')
+        .exactly(4)
+        .returns(fakeShicoPlayer)
 
       // 'startFast' ends. Plays 'fast'.
       fakePharsePlayer.fireCallback()
@@ -712,10 +880,115 @@ describe('AudioStatemachine', function () {
 
       phraseGroupMock.verify()
     })
+
+    it('set shico in fast state', function() {
+      const machine = new AudioStateMachine()
+      const fakeGroup = new FakeGroup()
+      const secondGroup = new FakeGroup()
+      const fakePharsePlayer = new FakePlayer('generic')
+      const fakeShicoPlayer = new FakePlayer('shico')
+      const phraseGroupMock = sinon.mock(fakeGroup)
+      phraseGroupMock
+        .expects('startFast')
+        .once()
+        .returns(fakePharsePlayer)
+      phraseGroupMock
+        .expects('fast')
+        .atLeast(1)
+        .returns(fakePharsePlayer)
+
+      machine.setShicoGroup(fakeGroup)
+      machine.addPhraseGroup(fakeGroup)
+      machine.playFast()
+
+      phraseGroupMock
+        .expects('shicoFast')
+        .atLeast(1)
+        .returns(fakeShicoPlayer)
+
+      // 'startFast' ends. Plays 'fast'.
+      fakePharsePlayer.fireCallback()
+      // 'fast' ends. Plays the next 'fast'.
+      fakePharsePlayer.fireCallback()
+
+      // Let 'shico' end once.
+      fakeShicoPlayer.fireCallback()
+
+      const fastShicoPlayerMock = sinon.mock(fakeShicoPlayer)
+      fastShicoPlayerMock.expects('stop')
+
+      const secondShicoPlayer = new FakePlayer('second-shico-player')
+      const secondShicoPlayerMock = sinon.mock(secondShicoPlayer)
+      secondShicoPlayerMock.expects('play').atLeast(1)
+
+      const secondGroupMock = sinon.mock(secondGroup)
+      secondGroupMock
+        .expects('shicoFast')
+        .atLeast(1)
+        .returns(secondShicoPlayer)
+
+      // Due to the expectation, the player should play immeidately.
+      machine.setShicoGroup(secondGroup)
+
+      phraseGroupMock.verify()
+      fastShicoPlayerMock.verify()
+      secondGroupMock.verify()
+      secondShicoPlayerMock.verify()
+    })
+
+    it('set shico in normal state', function() {
+      const machine = new AudioStateMachine()
+      const fakeGroup = new FakeGroup()
+      const secondGroup = new FakeGroup()
+      const fakePlayer = new FakePlayer()
+      const fakeShicoPlayer = new FakePlayer('shico')
+      const phraseGroupMock = sinon.mock(fakeGroup)
+      phraseGroupMock
+        .expects('start')
+        .once()
+        .returns(fakePlayer)
+      phraseGroupMock
+        .expects('phrase')
+        .atLeast(1)
+        .returns(fakePlayer)
+
+      machine.setShicoGroup(fakeGroup)
+      machine.addPhraseGroup(fakeGroup)
+      machine.play(100)
+
+      phraseGroupMock
+        .expects('shico')
+        .atLeast(1)
+        .returns(fakeShicoPlayer)
+
+      // 'start' ends and starts 'phrase'.
+      fakePlayer.fireCallback()
+
+      const fastShicoPlayerMock = sinon.mock(fakeShicoPlayer)
+      fastShicoPlayerMock.expects('stop')
+
+      const secondShicoPlayer = new FakePlayer('second-shico-player')
+      const secondShicoPlayerMock = sinon.mock(secondShicoPlayer)
+      secondShicoPlayerMock.expects('play').atLeast(1)
+
+      const secondGroupMock = sinon.mock(secondGroup)
+      secondGroupMock
+        .expects('shico')
+        .atLeast(1)
+        .returns(secondShicoPlayer)
+
+      // Due to the expectation, the player is expected play immeidately.
+      machine.setShicoGroup(secondGroup)
+
+      phraseGroupMock.verify()
+      fastShicoPlayerMock.verify()
+      secondGroupMock.verify()
+      secondShicoPlayerMock.verify()
+    })
   })
 
-  describe('Multiple phrase', function () {
-    beforeEach(function () {
+  describe('Multiple phrase', function() {
+    beforeEach(function() {
       const machine = new AudioStateMachine()
       const group1 = new FakeGroup()
       group1.setAssetGroupNumber(1)
@@ -737,11 +1010,23 @@ describe('AudioStatemachine', function () {
       this.groupMock2 = groupMock2
     })
 
-    it('start fast and stay in fast', function () {
-      this.groupMock1.expects('startFast').once().returns(this.player1)
-      this.groupMock1.expects('fast').atLeast(3).returns(this.player1)
-      this.groupMock2.expects('startFast').once().returns(this.player2)
-      this.groupMock2.expects('fast').atLeast(3).returns(this.player2)
+    it('start fast and stay in fast', function() {
+      this.groupMock1
+        .expects('startFast')
+        .once()
+        .returns(this.player1)
+      this.groupMock1
+        .expects('fast')
+        .atLeast(3)
+        .returns(this.player1)
+      this.groupMock2
+        .expects('startFast')
+        .once()
+        .returns(this.player2)
+      this.groupMock2
+        .expects('fast')
+        .atLeast(3)
+        .returns(this.player2)
 
       this.machine.addPhraseGroup(this.group1)
       this.machine.addPhraseGroup(this.group2)
@@ -776,9 +1061,15 @@ describe('AudioStatemachine', function () {
       this.groupMock2.verify()
     })
 
-    it('remove a group', function () {
-      this.groupMock1.expects('startFast').once().returns(this.player1)
-      this.groupMock2.expects('startFast').once().returns(this.player2)
+    it('remove a group', function() {
+      this.groupMock1
+        .expects('startFast')
+        .once()
+        .returns(this.player1)
+      this.groupMock2
+        .expects('startFast')
+        .once()
+        .returns(this.player2)
 
       const playerMock = sinon.mock(this.player1)
 
@@ -797,9 +1088,15 @@ describe('AudioStatemachine', function () {
 
     // When a phrase group is added back in NORMAL STATE, start playing it back
     // immediately.
-    it('remove and then add it back in normal', function () {
-      this.groupMock1.expects('start').once().returns(this.player1)
-      this.groupMock2.expects('start').once().returns(this.player2)
+    it('remove and then add it back in normal', function() {
+      this.groupMock1
+        .expects('start')
+        .once()
+        .returns(this.player1)
+      this.groupMock2
+        .expects('start')
+        .once()
+        .returns(this.player2)
 
       const playerMock = sinon.mock(this.player1)
       playerMock.expects('stop').once()
@@ -810,12 +1107,18 @@ describe('AudioStatemachine', function () {
 
       this.machine.removePhraseGroup(this.group1)
 
-      this.groupMock2.expects('phrase').atLeast(1).returns(this.player2)
+      this.groupMock2
+        .expects('phrase')
+        .atLeast(1)
+        .returns(this.player2)
 
       // 'start' for the second group finished. Starts playing 'phrase'.
       this.player2.fireCallback()
 
-      this.groupMock1.expects('phrase').atLeast(1).returns(this.player1)
+      this.groupMock1
+        .expects('phrase')
+        .atLeast(1)
+        .returns(this.player1)
       playerMock.expects('play').once()
 
       // Now add back group1 and make sure it starts playing 'pharse' as well.
@@ -828,12 +1131,18 @@ describe('AudioStatemachine', function () {
     // This should not play 'start' again for the group that is added back.
     // Instead it should start playing with the other group from the next state,
     // i.e. from NORMAL state.
-    it('remove and then add it back in start', function () {
+    it('remove and then add it back in start', function() {
       // Note that group1's "start" should only be called once. This expectation
       // covers the case where it shouldn't be called again when it's added
       // back.
-      this.groupMock1.expects('start').once().returns(this.player1)
-      this.groupMock2.expects('start').once().returns(this.player2)
+      this.groupMock1
+        .expects('start')
+        .once()
+        .returns(this.player1)
+      this.groupMock2
+        .expects('start')
+        .once()
+        .returns(this.player2)
 
       const playerMock = sinon.mock(this.player1)
       playerMock.expects('stop').once()
@@ -845,8 +1154,14 @@ describe('AudioStatemachine', function () {
       this.machine.removePhraseGroup(this.group1)
       this.machine.addPhraseGroup(this.group1)
 
-      this.groupMock1.expects('phrase').once().returns(this.player1)
-      this.groupMock2.expects('phrase').once().returns(this.player2)
+      this.groupMock1
+        .expects('phrase')
+        .once()
+        .returns(this.player1)
+      this.groupMock2
+        .expects('phrase')
+        .once()
+        .returns(this.player2)
 
       // 'start' for the second group finished. Starts playing 'phrase'.
       this.player2.fireCallback()
@@ -858,9 +1173,15 @@ describe('AudioStatemachine', function () {
 
     // When a phrase group is added back in FAST STATE, start playing it back
     // immediately.
-    it('remove and then add it back in fast', function () {
-      this.groupMock1.expects('startFast').once().returns(this.player1)
-      this.groupMock2.expects('startFast').once().returns(this.player2)
+    it('remove and then add it back in fast', function() {
+      this.groupMock1
+        .expects('startFast')
+        .once()
+        .returns(this.player1)
+      this.groupMock2
+        .expects('startFast')
+        .once()
+        .returns(this.player2)
 
       const playerMock = sinon.mock(this.player1)
       playerMock.expects('stop').once()
@@ -871,12 +1192,18 @@ describe('AudioStatemachine', function () {
 
       this.machine.removePhraseGroup(this.group1)
 
-      this.groupMock2.expects('fast').atLeast(1).returns(this.player2)
+      this.groupMock2
+        .expects('fast')
+        .atLeast(1)
+        .returns(this.player2)
 
       // 'startFast' for the second group finished. Starts playing 'fast'.
       this.player2.fireCallback()
 
-      this.groupMock1.expects('fast').atLeast(1).returns(this.player1)
+      this.groupMock1
+        .expects('fast')
+        .atLeast(1)
+        .returns(this.player1)
       playerMock.expects('play').once()
 
       // Now add back group1 and make sure it starts playing 'fast' as well.
@@ -886,14 +1213,26 @@ describe('AudioStatemachine', function () {
       playerMock.verify()
     })
 
-    describe('with shico', function () {
-      it('start fast stay in fast', function () {
+    describe('with shico', function() {
+      it('start fast stay in fast', function() {
         const fakeShicoPlayer = new FakePlayer('shico')
 
-        this.groupMock1.expects('startFast').once().returns(this.player1)
-        this.groupMock1.expects('fast').atLeast(3).returns(this.player1)
-        this.groupMock2.expects('startFast').once().returns(this.player2)
-        this.groupMock2.expects('fast').atLeast(3).returns(this.player2)
+        this.groupMock1
+          .expects('startFast')
+          .once()
+          .returns(this.player1)
+        this.groupMock1
+          .expects('fast')
+          .atLeast(3)
+          .returns(this.player1)
+        this.groupMock2
+          .expects('startFast')
+          .once()
+          .returns(this.player2)
+        this.groupMock2
+          .expects('fast')
+          .atLeast(3)
+          .returns(this.player2)
 
         this.machine.addPhraseGroup(this.group1)
         this.machine.addPhraseGroup(this.group2)
@@ -904,7 +1243,10 @@ describe('AudioStatemachine', function () {
         // 'startFast' ends, for the first group.
         this.player1.fireCallback()
 
-        this.groupMock1.expects('shicoFast').atLeast(3).returns(fakeShicoPlayer)
+        this.groupMock1
+          .expects('shicoFast')
+          .atLeast(3)
+          .returns(fakeShicoPlayer)
 
         // 'startFast' ends, for the second group.
         this.player2.fireCallback()

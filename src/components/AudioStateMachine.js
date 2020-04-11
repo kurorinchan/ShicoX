@@ -24,6 +24,7 @@ const PLAYBACK_COMPLETE_TYPE = Symbol('phrase playback complete')
 const SHICO_PLAYBACK_COMPLETE_TYPE = Symbol('shico playback complete')
 const MINUTE_COUNT_DOWN_OPERATION_TYPE = Symbol('countdown')
 const ADDED_GROUP_EVENT = Symbol('added-group-event')
+const SET_SHICO_GROUP_EVENT = Symbol('set-shico-group-event')
 
 class Operation {
   constructor(type) {
@@ -59,11 +60,17 @@ class AddedGroupEvent extends Operation {
   }
 }
 
+class SetShicoGroupEvent extends Operation {
+  constructor() {
+    super(SET_SHICO_GROUP_EVENT)
+  }
+}
+
 // in milliseconds
 const ONE_MINUTE = 60000
 
 function findPlayerAndRemove(player, players) {
-  const index = players.findIndex(function (p) {
+  const index = players.findIndex(function(p) {
     return p.assetGroupNumber == player.assetGroupNumber
   })
   if (index == -1) {
@@ -101,6 +108,49 @@ function getPlayerByTypename(group, type) {
 
 class AudioStateMachine {
   constructor() {
+    this.clear()
+  }
+
+  setShicoGroup(group) {
+    this.stopShicoPlayback()
+    this.shicoGroup = group
+    this.processNext(new SetShicoGroupEvent())
+  }
+
+  addPhraseGroup(group) {
+    this.phraseGroups.push(group)
+    this.processNext(new AddedGroupEvent(group))
+  }
+
+  /**
+   *
+   * @param {AudioAssetGroup} group
+   */
+  removePhraseGroup(group) {
+    const assetGroupNumber = group.assetGroupNumber()
+    const groupIndex = this.phraseGroups.findIndex(function(g) {
+      return g.assetGroupNumber() == assetGroupNumber
+    })
+    if (groupIndex >= 0) {
+      this.phraseGroups.splice(groupIndex, 1)
+    }
+
+    // TODO: This may be dedupable with findPlayerAndRemove().
+    const playerIndex = this.phrasePlayers.findIndex(function(p) {
+      return p.assetGroupNumber == assetGroupNumber
+    })
+    if (playerIndex == -1) {
+      return
+    }
+    this.phrasePlayers[playerIndex].stop()
+    this.phrasePlayers.splice(playerIndex, 1)
+  }
+
+  /**
+   * Removes all AudioAssetGroups and reinitialize other states.
+   */
+  clear() {
+    this.stopAllPlayback()
     this.duration = 0
     this.shicoGroup = null
     this.shicoPlayer = null
@@ -115,39 +165,6 @@ class AudioStateMachine {
     // the player came from (i.e. which group), in order to be able to figure
     // out which group to play from next.
     this.phrasePlayers = []
-  }
-
-  setShicoGroup(group) {
-    this.shicoGroup = group
-  }
-
-  addPhraseGroup(group) {
-    this.phraseGroups.push(group)
-    this.processNext(new AddedGroupEvent(group))
-  }
-
-  /**
-   *
-   * @param {AudioAssetGroup} group
-   */
-  removePhraseGroup(group) {
-    const assetGroupNumber = group.assetGroupNumber()
-    const groupIndex = this.phraseGroups.findIndex(function (g) {
-      return g.assetGroupNumber() == assetGroupNumber
-    })
-    if (groupIndex >= 0) {
-      this.phraseGroups.splice(groupIndex, 1)
-    }
-
-    // TODO: This may be dedupable with findPlayerAndRemove().
-    const playerIndex = this.phrasePlayers.findIndex(function (p) {
-      return p.assetGroupNumber == assetGroupNumber
-    })
-    if (playerIndex == -1) {
-      return
-    }
-    this.phrasePlayers[playerIndex].stop()
-    this.phrasePlayers.splice(playerIndex, 1)
   }
 
   // Notifies the callback the time remaining in minutes in "normal" mode.
@@ -312,10 +329,16 @@ class AudioStateMachine {
   // This will stop all the players that are playing and will empty the
   // phrasePlayers array and set shicoPlayer to null.
   stopAllPlayback() {
-    for (const player of this.phrasePlayers) {
-      player.stop()
+    if (this.phrasePlayers) {
+      for (const player of this.phrasePlayers) {
+        player.stop()
+      }
     }
     this.phrasePlayers = []
+    this.stopShicoPlayback()
+  }
+
+  stopShicoPlayback() {
     if (this.shicoPlayer) {
       this.shicoPlayer.stop()
     }
@@ -361,7 +384,7 @@ class AudioStateMachine {
   }
 
   findPhraseGroup(assetGroupNumber) {
-    return this.phraseGroups.find(function (g) {
+    return this.phraseGroups.find(function(g) {
       return g.assetGroupNumber() == assetGroupNumber
     })
   }
@@ -394,11 +417,14 @@ class AudioStateMachine {
         this.stopAllPlayback()
       }
       this.simultaneousPharsePlaybackStart('phrase')
-      this.playShico((group) => group.shico())
+      this.playShico(group => group.shico())
     } else if (event.type == PLAYBACK_COMPLETE_TYPE) {
       this.playNextOf(event.player.assetGroupNumber, 'phrase')
-    } else if (event.type == SHICO_PLAYBACK_COMPLETE_TYPE) {
-      this.playShico((group) => group.shico())
+    } else if (
+      event.type == SHICO_PLAYBACK_COMPLETE_TYPE ||
+      event.type == SET_SHICO_GROUP_EVENT
+    ) {
+      this.playShico(group => group.shico())
     } else if (event.type == ADDED_GROUP_EVENT) {
       this.playNextOf(event.group.assetGroupNumber(), 'phrase')
     } else if (event.type == MINUTE_COUNT_DOWN_OPERATION_TYPE) {
@@ -480,9 +506,12 @@ class AudioStateMachine {
       }
 
       this.simultaneousPharsePlaybackStart('fast')
-      this.playShico((group) => group.shicoFast())
-    } else if (event.type == SHICO_PLAYBACK_COMPLETE_TYPE) {
-      this.playShico((group) => group.shicoFast())
+      this.playShico(group => group.shicoFast())
+    } else if (
+      event.type == SHICO_PLAYBACK_COMPLETE_TYPE ||
+      event.type == SET_SHICO_GROUP_EVENT
+    ) {
+      this.playShico(group => group.shicoFast())
     } else if (event.type == PLAYBACK_COMPLETE_TYPE) {
       this.playNextOf(event.player.assetGroupNumber, 'fast')
     } else if (event.type == ADDED_GROUP_EVENT) {
@@ -523,5 +552,5 @@ class AudioStateMachine {
 }
 
 module.exports = {
-  AudioStateMachine,
+  AudioStateMachine
 }
