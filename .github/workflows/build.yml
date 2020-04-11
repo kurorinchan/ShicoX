@@ -17,9 +17,15 @@ jobs:
       with:
         node-version: 8.x
     - name: yarn install
-      run: yarn install    
+      run: yarn install
+    # Since the project is using electron-builder 21, this patching seems to be necesssary.
+    # See https://github.com/electron-userland/electron-builder/issues/4176
+    - name: Temporarily fix electron-builder
+      run: |
+        sed -i 's/\^\[\\w/\^\[.\\w/g' node_modules/builder-util/out/util.js
+      shell: bash
     - name: build
-      run: yarn electron:build --publish=never
+      run: yarn electron:build --publish=onTagOrDraft
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
