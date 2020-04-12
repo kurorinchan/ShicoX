@@ -39,7 +39,6 @@ jobs:
           sed -i '' 's/\^\[\\w/\^\[.\\w/g' node_modules/builder-util/out/util.js
         shell: bash
       - name: build
-        if: runner.os != 'Windows'
         run: yarn electron:build --publish=onTagOrDraft
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
