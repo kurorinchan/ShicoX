@@ -134,8 +134,8 @@ describe('AudioAsset', function() {
   describe('Assets', function() {
     this.beforeEach(function() {
       this.group = new audioasset.AudioAssetGroup(
-        '/root/shiko01',
-        '/root/voice01'
+        path.join('/root', 'shiko01'),
+        path.join('/root', 'voice01')
       )
     })
 
@@ -150,7 +150,9 @@ describe('AudioAsset', function() {
     it('find normal phrase', function() {
       const voice = this.group.phrase()
       expect(voice).to.not.be.false
-      expect(voice.pathForTesting).to.equal('/root/voice01/nomal_s/v01.wav')
+      expect(voice.pathForTesting).to.equal(
+        path.join('/root', 'voice01', 'nomal_s', 'v01.wav')
+      )
     })
 
     it('expect asset group number to be 1', function() {
@@ -161,13 +163,17 @@ describe('AudioAsset', function() {
     it('countdown 1 min', function() {
       const voice = this.group.perMinuteNotification(1)
       expect(voice).to.not.be.false
-      expect(voice.pathForTesting).to.equal('/root/shiko01/start/cdownxxx1.wav')
+      expect(voice.pathForTesting).to.equal(
+        path.join('/root', 'shiko01', 'start', 'cdownxxx1.wav')
+      )
     })
 
     it('countdown >5 min', function() {
       const voice = this.group.perMinuteNotification(6)
       expect(voice).to.not.be.false
-      expect(voice.pathForTesting).to.equal('/root/shiko01/start/cdown02.wav')
+      expect(voice.pathForTesting).to.equal(
+        path.join('/root', 'shiko01', 'start', 'cdown02.wav')
+      )
     })
   })
 })
