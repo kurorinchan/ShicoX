@@ -1,32 +1,42 @@
 # ShicoX
 
-シコリーダーを参考にElectronで実装しました。
-ゴールはWindows、Mac、Linuxのプラットフォームで動作するものです。
+シコリーダー!を参考にElectronで実装しました。
+Windows、Mac、Linuxのプラットフォームで動作するものを目指しています。
 
-[本家シコリーダー](http://tamemaru.x.fc2.com/sozai.html)とは無関係のプロジェクトです。
+同人作品などを売っているサイトなどで"シコリーダー"と検索すると色々出てきます。
 
-技術的なことはすべて英語です。
+本家[シコリーダー!](http://tamemaru.x.fc2.com/sozai.html)とは無関係のプロジェクトです。
+
+## ダウンロード
+リリースされたものは[releases](https://github.com/kurorinchan/ShicoX/releases)から
+* Windows: .exe
+* macOS: .zip
+* Linux: .AppImage
+
+### 注意点
+* macOS版は解答後に出てきたアプリケーションは[ctrl + クリックしないと起動できません](https://support.apple.com/ja-jp/guide/mac-help/mh40616/mac)。
+* Windows版はインストーラのようなアイコンをしていますが、そのまま起動できます。
 
 ## 使い方
 ### 概略
-1. リソース（shiko01, voice01, shiko02, voice02, ...) があるフォルダを左上のボタンから選択
-2. 時間を設定
-3. 開始ボタンを押す
+1. リソース（shiko01, voice01, shiko02, voice02, ...) があるフォルダを左上のボタンから選択。
+2. 時間を設定。
+3. 開始ボタンを押す。
 
 ### 基本
 ![Usage on macOS](docs/images/mac_ui.png)
 
 1. 左上の選択を押すとフォルダ選択ダイアログがでるのでリソースの入っているフォルダを選択する。
-   * リソースフォルダ: shiko01, voice01などがあるフォルダ
-   * 例：C:\resources\shiko01とC:\resources\voice01とある場合、C:\resourcesを選択
+   * リソースフォルダ: shiko01, voice01などがあるフォルダ。
+   * 例：C:\resources\shiko01とC:\resources\voice01とある場合、C:\resourcesを選択。
    * 直接フォルダパスを左上のテキストボックスに入力してEnterを押しても同じ動作をする。
 2. リソースのロードが終わるとシコシコボイスのトラックが選べたり台詞のチェックボックス変更することができます。
-3. \[開始\]または\[開始(fast)\]を押す
+3. \[開始\]または\[開始(fast)\]を押す。
 
 ### 各音声操作
-Volのスライダーを変えることで音量を0から100まで調整できます。音量が変わると左の数字も変わります。
+`Vol`のスライダーを変えることで音量を0から100まで調整できます。音量が変わると左の数字も変わります。
 
-Panのスライダーを変えることで左や右に寄せたりできます。初期値は真ん中です。
+`Pan`のスライダーを変えることで左や右に寄せたりできます。初期値は真ん中です。
 スライダー調整中は真ん中に戻りやすいように（スナップするように）なっています。
 
 #### シコシコボイス
@@ -58,7 +68,7 @@ Panのスライダーを変えることで左や右に寄せたりできます�
 そのうち[Design Document](#design-document)に詳細を書きます。
 
 ## 問題をみつけたら
-([Issues](https://github.com/kurorinchan/ShicoX/issues)から)問題を説明したIssueを作ってください。新機能実装も同じ手順で。
+[Issues](https://github.com/kurorinchan/ShicoX/issues)から問題を説明したIssueを作ってください。日本語でも英語でも対応します。新機能実装も同じ手順で。
 
 ## TODO
 - [ ] 終了ボタンの実装
@@ -75,6 +85,8 @@ Panのスライダーを変えることで左や右に寄せたりできます�
 - [ ] 再生中の音声ファイル名の表示
 - [ ] `howler.js`などを使って、より遊べるように（より３次元的など）
 
+# Techincal Details
+技術的なことはすべて英語です。
 
 ## Design Document
 (Link to Google Docs or added in docs/ once its brushed up.)
