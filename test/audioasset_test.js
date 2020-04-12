@@ -1,7 +1,7 @@
 const rewire = require('rewire')
 const audioasset = rewire('../src/components/AssetFinder')
-const fs = require('fs')
-const sinon = require('sinon')
+const mockfs = require('mock-fs')
+const path = require('path')
 
 var chai = require('chai'),
   expect = chai.expect
@@ -24,7 +24,7 @@ class FakePanner {
 class FakeAudioContext {
   createMediaElementSource() {
     return {
-      connect: function () {},
+      connect: function() {}
     }
   }
   createStereoPanner() {
@@ -41,105 +41,139 @@ function fakeAudioContextCreateFunction() {
 audioasset.__set__('createAudio', fakeAudioCreateFunction)
 audioasset.__set__('createAudioContext', fakeAudioContextCreateFunction)
 
-describe('AudioAsset', function () {
-  before(function () {
-    const readDirMap = {
-      '/root': ['shiko01', 'voice01', 'shiko02', 'voice02'],
-      '/root/shiko01': ['fast', 'finish', 'nomal', 'start'],
-      '/root/shiko01/fast': ['f92.wav'],
-      '/root/shiko01/finish': [
-        'count.wav',
-        'end01.wav',
-        'za02.wav',
-        'zb08.wav',
-      ],
-      '/root/shiko01/nomal': ['01.wav', '12.wav'],
-      '/root/shiko01/start': [
-        'cdownxxx1.wav',
-        'cdown02.wav',
-        's01.wav',
-        'sf01.wav',
-        'sg01.wav',
-        'sz01.wav',
-      ],
-      '/root/voice01': ['fast_s', 'muon', 'nomal_s'],
-      '/root/voice01/fast_s': ['vf01.wav'],
-      '/root/voice01/muon': ['01.wav'],
-      '/root/voice01/nomal_s': ['v01.wav'],
-      '/root/shiko02': ['fast', 'finish', 'nomal', 'start'],
-      '/root/shiko02/fast': ['f92.wav'],
-      '/root/shiko02/finish': [
-        'count.wav',
-        'end01.wav',
-        'za02.wav',
-        'zb08.wav',
-      ],
-      '/root/shiko02/nomal': ['01.wav', '12.wav'],
-      '/root/shiko02/start': [
-        'cdownxxx1.wav',
-        'cdown02.wav',
-        's01.wav',
-        'sf01.wav',
-        'sg01.wav',
-        'sz01.wav',
-      ],
-      '/root/voice02': ['fast_s', 'muon', 'nomal_s'],
-      '/root/voice02/fast_s': ['vf01.wav'],
-      '/root/voice02/muon': ['01.wav'],
-      '/root/voice02/nomal_s': ['v01.wav'],
-    }
-    sinon.replace(fs, 'readdirSync', function (path) {
-      return readDirMap[path]
+describe('AudioAsset', function() {
+  before(function() {
+    mockfs({
+      '/root': {
+        shiko01: {
+          fast: {
+            'f92.wav': ''
+          },
+          finish: {
+            'count.wav': '',
+            'end01.wav': '',
+            'za02.wav': '',
+            'zb08.wav': ''
+          },
+          nomal: {
+            '01.wav': '',
+            '12.wav': ''
+          },
+          start: {
+            'cdownxxx1.wav': '',
+            'cdown02.wav': '',
+            's01.wav': '',
+            'sf01.wav': '',
+            'sg01.wav': '',
+            'sz01.wav': ''
+          }
+        },
+        voice01: {
+          fast_s: {
+            'vf01.wav': ''
+          },
+          muon: {
+            '01.wav': ''
+          },
+          nomal_s: {
+            'v01.wav': ''
+          }
+        },
+        // Below are 02s. The file names and dir structure is the same as
+        // 01s.
+        shiko02: {
+          fast: {
+            'f92.wav': ''
+          },
+          finish: {
+            'count.wav': '',
+            'end01.wav': '',
+            'za02.wav': '',
+            'zb08.wav': ''
+          },
+          nomal: {
+            '01.wav': '',
+            '12.wav': ''
+          },
+          start: {
+            'cdownxxx1.wav': '',
+            'cdown02.wav': '',
+            's01.wav': '',
+            'sf01.wav': '',
+            'sg01.wav': '',
+            'sz01.wav': ''
+          }
+        },
+        voice02: {
+          fast_s: {
+            'vf01.wav': ''
+          },
+          muon: {
+            '01.wav': ''
+          },
+          nomal_s: {
+            'v01.wav': ''
+          }
+        }
+      }
     })
   })
-  after(function () {
-    sinon.restore()
+  after(function() {
+    mockfs.restore()
   })
 
-  describe('AssetFinder', function () {
-    it('find 2 asset groups', function () {
+  describe('AssetFinder', function() {
+    it('find 2 asset groups', function() {
       const finder = new audioasset.AssetFinder('/root')
-      finder.injectAudioAssetGroupCreateFunc(function () {})
+      finder.injectAudioAssetGroupCreateFunc(function() {})
       const groups = finder.findAudioAssetGroups()
       expect(groups.length).to.equal(2)
     })
   })
 
-  describe('Assets', function () {
-    this.beforeEach(function () {
+  describe('Assets', function() {
+    this.beforeEach(function() {
       this.group = new audioasset.AudioAssetGroup(
-        '/root/shiko01',
-        '/root/voice01'
+        path.join('/root', 'shiko01'),
+        path.join('/root', 'voice01')
       )
     })
 
-    it('find fast shiko', function () {
+    it('find fast shiko', function() {
       const voice = this.group.shicoFast()
       expect(voice).to.not.be.false
-      expect(voice.pathForTesting).to.equal('/root/shiko01/fast/f92.wav')
+      expect(voice.pathForTesting).to.equal(
+        path.join('/root', 'shiko01', 'fast', 'f92.wav')
+      )
     })
 
-    it('find normal phrase', function () {
+    it('find normal phrase', function() {
       const voice = this.group.phrase()
       expect(voice).to.not.be.false
-      expect(voice.pathForTesting).to.equal('/root/voice01/nomal_s/v01.wav')
+      expect(voice.pathForTesting).to.equal(
+        path.join('/root', 'voice01', 'nomal_s', 'v01.wav')
+      )
     })
 
-    it('expect asset group number to be 1', function () {
+    it('expect asset group number to be 1', function() {
       const groupNumber = this.group.assetGroupNumber()
       expect(groupNumber).to.equal(1)
     })
 
-    it('countdown 1 min', function () {
+    it('countdown 1 min', function() {
       const voice = this.group.perMinuteNotification(1)
       expect(voice).to.not.be.false
-      expect(voice.pathForTesting).to.equal('/root/shiko01/start/cdownxxx1.wav')
+      expect(voice.pathForTesting).to.equal(
+        path.join('/root', 'shiko01', 'start', 'cdownxxx1.wav')
+      )
     })
 
-    it('countdown >5 min', function () {
+    it('countdown >5 min', function() {
       const voice = this.group.perMinuteNotification(6)
       expect(voice).to.not.be.false
-      expect(voice.pathForTesting).to.equal('/root/shiko01/start/cdown02.wav')
+      expect(voice.pathForTesting).to.equal(
+        path.join('/root', 'shiko01', 'start', 'cdown02.wav')
+      )
     })
   })
 })
