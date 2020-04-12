@@ -1,6 +1,7 @@
 const rewire = require('rewire')
 const audioasset = rewire('../src/components/AssetFinder')
 const mockfs = require('mock-fs')
+const path = require('path')
 
 var chai = require('chai'),
   expect = chai.expect
@@ -141,7 +142,9 @@ describe('AudioAsset', function() {
     it('find fast shiko', function() {
       const voice = this.group.shicoFast()
       expect(voice).to.not.be.false
-      expect(voice.pathForTesting).to.equal('/root/shiko01/fast/f92.wav')
+      expect(voice.pathForTesting).to.equal(
+        path.join('/root', 'shiko01', 'fast', 'f92.wav')
+      )
     })
 
     it('find normal phrase', function() {
