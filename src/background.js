@@ -1,6 +1,6 @@
 'use strict'
 
-import { app, protocol, BrowserWindow } from 'electron'
+import { app, protocol, BrowserWindow, ipcMain } from 'electron'
 import {
   createProtocol
   /* installVueDevtools */
@@ -43,6 +43,12 @@ function createWindow() {
     win = null
   })
 }
+
+ipcMain.on('toggle-always-on-top', function(event, value) {
+  // Note that it's not a problem to acess win here because this will only
+  // be invoked after a window has been created.
+  win.setAlwaysOnTop(value)
+})
 
 // Disable GPU acceleration for now. It doesn't work well in VMs AFAICT.
 app.disableHardwareAcceleration()

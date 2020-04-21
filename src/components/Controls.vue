@@ -1,6 +1,7 @@
 <template>
   <div id="controls">
     <FolderSelector :initPath="initPath" @folder-selected="folderSelected" />
+    <AlwaysOnTop @changed="alwaysOnTopToggle" />
     <CountDownTimer id="countdowntimer" @new-duration="displayedRemainingTime = $event" />
     <div id="remainingtime">あと{{ displayedRemainingTime }}分</div>
     <ActionButtons
@@ -54,6 +55,9 @@ import ActionButtons from './ActionButtons.vue'
 import ShicoVoiceController from './ShicoVoiceController.vue'
 import IngoVoiceController from './IngoVoiceController.vue'
 import FolderSelector from './FolderSelector.vue'
+import AlwaysOnTop from './AlwaysOnTop.vue'
+
+const { ipcRenderer } = require('electron')
 
 const asm = require('./AudioStateMachine')
 const af = require('./AssetFinder')
@@ -86,7 +90,8 @@ export default {
     CountDownTimer,
     ShicoVoiceController,
     IngoVoiceController,
-    FolderSelector
+    FolderSelector,
+    AlwaysOnTop
   },
   data() {
     const ingoVoices = []
@@ -250,6 +255,10 @@ export default {
         this.shicoVoices[0].selected = true
         this.shicoVolume = firstGroup.getShicoVolume()
       }
+    },
+    alwaysOnTopToggle: function(checked) {
+      console.log('always on top ', checked)
+      ipcRenderer.send('toggle-always-on-top', checked)
     }
   }
 }
